@@ -3,11 +3,15 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Localization.Settings;
 using UnityEngine.SceneManagement;
+using Zenject;
 
-public class SceneTransitionManager : MonoBehaviour {
+public class SceneTransitionManager : MonoBehaviour
+{
 
+    // TODO make instance variable
     public static bool IsLoading { get; private set; }
 
+    // TODO Remove when all is moved to zenject
     public static SceneTransitionManager Instance { get; private set; }
 
     private static Queue<IEnumerator> externalRoutines = new Queue<IEnumerator>();
@@ -16,16 +20,17 @@ public class SceneTransitionManager : MonoBehaviour {
 
     [SerializeField] private DarkThemeSO darkThemeSO;
 
-    private void Awake() {
-        if (Instance != null) {
-            Destroy(gameObject);
-            return;
-        }
-        DontDestroyOnLoad(gameObject);
+    private PersistentUI persistentUI;
+
+    [Inject]
+    private void Init(PersistentUI persistentUI)
+    {
         Instance = this;
+        this.persistentUI = persistentUI;
     }
 
-    public void LoadScene(string scene, params IEnumerator[] routines) {
+    public void LoadScene(string scene, params IEnumerator[] routines)
+    {
         if (IsLoading) return;
         darkThemeSO.DarkThemeifyUI();
         IsLoading = true;
@@ -43,11 +48,13 @@ public class SceneTransitionManager : MonoBehaviour {
         StartCoroutine(CancelLoadingTransitionAndDisplay(message));
     }
 
-    public void AddLoadRoutine(IEnumerator routine) {
+    public void AddLoadRoutine(IEnumerator routine)
+    {
         if (IsLoading) externalRoutines.Enqueue(routine);
     }
 
-    public void AddAsyncLoadRoutine(IEnumerator routine) {
+    public void AddAsyncLoadRoutine(IEnumerator routine)
+    {
         if (IsLoading) externalRoutines.Enqueue(routine);
     }
 
@@ -76,8 +83,9 @@ public class SceneTransitionManager : MonoBehaviour {
         }
     }
 
-    private IEnumerator SceneTransition(string scene) {
-        yield return PersistentUI.Instance.FadeInLoadingScreen();
+    private IEnumerator SceneTransition(string scene)
+    {
+        yield return persistentUI.FadeInLoadingScreen();
         yield return StartCoroutine(RunExternalRoutines());
         //foreach (IEnumerator routine in routines) yield return StartCoroutine(routine);
         yield return SceneManager.LoadSceneAsync(scene);
@@ -85,14 +93,15 @@ public class SceneTransitionManager : MonoBehaviour {
         //yield return new WaitForSeconds(1f);
         yield return StartCoroutine(RunExternalRoutines()); //We need to do this a second time in case any classes registered a routine to run on scene start.
         darkThemeSO.DarkThemeifyUI();
-        PersistentUI.Instance.LevelLoadSlider.gameObject.SetActive(false);
-        PersistentUI.Instance.LevelLoadSliderLabel.text = "";
-        yield return PersistentUI.Instance.FadeOutLoadingScreen();
+        persistentUI.LevelLoadSlider.gameObject.SetActive(false);
+        persistentUI.LevelLoadSliderLabel.text = "";
+        yield return persistentUI.FadeOutLoadingScreen();
         IsLoading = false;
         LoadingCoroutine = null;
     }
 
-    private IEnumerator RunExternalRoutines() {
+    private IEnumerator RunExternalRoutines()
+    {
         //This block runs the routines one by one, which isn't ideal
         while (externalRoutines.Count > 0)
             yield return StartCoroutine(externalRoutines.Dequeue());
@@ -103,9 +112,9 @@ public class SceneTransitionManager : MonoBehaviour {
         if (!string.IsNullOrEmpty(key))
         {
             var message = LocalizationSettings.StringDatabase.GetLocalizedStringAsync("SongEditMenu", key);
-            yield return PersistentUI.Instance.DisplayMessage(message, PersistentUI.DisplayMessageType.BOTTOM);
+            yield return persistentUI.DisplayMessage(message, PersistentUI.DisplayMessageType.BOTTOM);
         }
-        yield return PersistentUI.Instance.FadeOutLoadingScreen();
+        yield return persistentUI.FadeOutLoadingScreen();
     }
 
 }

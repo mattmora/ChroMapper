@@ -7,10 +7,10 @@ using UnityEngine;
 using System.Globalization;
 using System.Collections.Generic;
 
-public class Settings {
-
-    private static Settings _instance;
-    public static Settings Instance => _instance ?? (_instance = Load());
+public class Settings
+{
+    // TODO: Remove, all classes should retrieve this via Zenject
+    public static Settings Instance { get; private set; } = new Settings();
 
     public string BeatSaberInstallation = "";
     public string CustomSongsFolder => ConvertToDirectory(BeatSaberInstallation + "/Beat Saber_Data/CustomLevels");
@@ -96,17 +96,12 @@ public class Settings {
 
     private static Dictionary<string, Action<object>> nameToActions = new Dictionary<string, Action<object>>();
 
-    private static Settings Load()
+    public Settings()
     {
-        //Fixes weird shit regarding how people write numbers (20,35 VS 20.35), causing issues in JSON
-        //This should be thread-wide, but I have this set throughout just in case it isnt.
-        System.Threading.Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
-        System.Threading.Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
-
+        AllFieldInfos = new Dictionary<string, FieldInfo>();
         bool settingsFailed = false;
 
-        Settings settings = new Settings();
-        Type type = settings.GetType();
+        Type type = GetType();
         MemberInfo[] infos = type.GetMembers(BindingFlags.Public | BindingFlags.Instance);
         if (!File.Exists(Application.persistentDataPath + "/ChroMapperSettings.json"))
         { //Without this code block, new users of ChroMapper will launch the Options menu to dozens of KeyNotFoundExceptions
@@ -115,57 +110,61 @@ public class Settings {
                 if (!(info is FieldInfo field)) continue;
                 AllFieldInfos.Add(field.Name, field);
             }
-            return settings;
         }
-        using (StreamReader reader = new StreamReader(Application.persistentDataPath + "/ChroMapperSettings.json"))
+        else
         {
-            JSONNode mainNode = JSON.Parse(reader.ReadToEnd());
-            
-            foreach (MemberInfo info in infos)
+            using (StreamReader reader = new StreamReader(Application.persistentDataPath + "/ChroMapperSettings.json"))
             {
-                try
+                JSONNode mainNode = JSON.Parse(reader.ReadToEnd());
+
+                foreach (MemberInfo info in infos)
                 {
-                    if (!(info is FieldInfo field)) continue;
-                    AllFieldInfos.Add(field.Name, field);
-                    if (mainNode[field.Name] != null)
+                    try
                     {
-                        if (mainNode[field.Name] is JSONArray arr)
+                        if (!(info is FieldInfo field)) continue;
+                        Debug.LogWarning($"{field is null} | {field.Name is null} | {AllFieldInfos.ContainsKey(field.Name)}");
+                        AllFieldInfos.Add(field.Name, field);
+                        if (mainNode[field.Name] != null)
                         {
-                            Array newArr = Array.CreateInstance(field.FieldType.GetElementType(), arr.Count);
-                            for (int i = 0; i < arr.Count; i++)
+                            if (mainNode[field.Name] is JSONArray arr)
                             {
-                                if (arr[i] == null) continue;
-
-                                var elementType = field.FieldType.GetElementType();
-                                var element = Activator.CreateInstance(elementType);
-
-                                if (element is IJSONSetting elementJSON)
+                                Array newArr = Array.CreateInstance(field.FieldType.GetElementType(), arr.Count);
+                                for (int i = 0; i < arr.Count; i++)
                                 {
-                                    elementJSON.FromJSON(arr[i]);
-                                    newArr.SetValue(elementJSON, i);
+                                    if (arr[i] == null) continue;
+
+                                    var elementType = field.FieldType.GetElementType();
+                                    var element = Activator.CreateInstance(elementType);
+
+                                    if (element is IJSONSetting elementJSON)
+                                    {
+                                        elementJSON.FromJSON(arr[i]);
+                                        newArr.SetValue(elementJSON, i);
+                                    }
+                                    else
+                                    {
+                                        newArr.SetValue(Convert.ChangeType(arr[i], elementType), i);
+                                    }
                                 }
-                                else
-                                {
-                                    newArr.SetValue(Convert.ChangeType(arr[i], elementType), i);
-                                }
+                                field.SetValue(this, newArr);
                             }
-                            field.SetValue(settings, newArr);
-                        }
-                        else if (typeof(IJSONSetting).IsAssignableFrom(field.FieldType))
-                        {
-                            var elementJSON = (IJSONSetting) Activator.CreateInstance(field.FieldType);
-                            elementJSON.FromJSON(mainNode[field.Name].Value);
-                            field.SetValue(settings, elementJSON);
-                        }
-                        else
-                        {
-                            field.SetValue(settings, Convert.ChangeType(mainNode[field.Name].Value, field.FieldType));
+                            else if (typeof(IJSONSetting).IsAssignableFrom(field.FieldType))
+                            {
+                                var elementJSON = (IJSONSetting)Activator.CreateInstance(field.FieldType);
+                                elementJSON.FromJSON(mainNode[field.Name].Value);
+                                field.SetValue(this, elementJSON);
+                            }
+                            else
+                            {
+                                field.SetValue(this, Convert.ChangeType(mainNode[field.Name].Value, field.FieldType));
+                            }
                         }
                     }
-                }catch(Exception e)
-                {
-                    Debug.LogWarning($"Setting {info.Name} failed to load.\n{e}");
-                    settingsFailed = true;
+                    catch (Exception e)
+                    {
+                        Debug.LogWarning($"Setting {info.Name} failed to load.\n{e}");
+                        settingsFailed = true;
+                    }
                 }
             }
         }
@@ -176,9 +175,7 @@ public class Settings {
         }
 
         JSONNumber.CapNumbersToDecimals = true;
-        JSONNumber.DecimalPrecision = settings.TimeValueDecimalPrecision;
-
-        return settings;
+        JSONNumber.DecimalPrecision = TimeValueDecimalPrecision;
     }
 
     public static System.Collections.IEnumerator ShowFailedDialog()
@@ -295,6 +292,7 @@ public class Settings {
         if (nameToActions.TryGetValue(name, out Action<object> boy)) boy?.Invoke(value);
     }
 
+    // TODO: Replace with instance Validate method as Zenjecification continues
     public static bool ValidateDirectory(Action<string> errorFeedback = null) {
         if (!Directory.Exists(Instance.BeatSaberInstallation)) {
             errorFeedback?.Invoke("validate.missing");
@@ -305,6 +303,26 @@ public class Settings {
             return false;
         }
         if (!Directory.Exists(Instance.CustomWIPSongsFolder))
+        {
+            errorFeedback?.Invoke("validate.nowip");
+            return false;
+        }
+        return true;
+    }
+
+    public bool ValidateInstallation(Action<string> errorFeedback = null)
+    {
+        if (!Directory.Exists(BeatSaberInstallation))
+        {
+            errorFeedback?.Invoke("validate.missing");
+            return false;
+        }
+        if (!Directory.Exists(CustomSongsFolder))
+        {
+            errorFeedback?.Invoke("validate.nofolders");
+            return false;
+        }
+        if (!Directory.Exists(CustomWIPSongsFolder))
         {
             errorFeedback?.Invoke("validate.nowip");
             return false;

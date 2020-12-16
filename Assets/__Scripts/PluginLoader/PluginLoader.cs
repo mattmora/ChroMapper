@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using UnityEngine;
+using Zenject;
 
-internal class PluginLoader : MonoBehaviour
+internal class PluginLoader : IInitializable, IDisposable
 {
     private const string PLUGIN_DIR = "Plugins";
     private const bool LOAD_PLUGINS_IN_EDITOR = false;
@@ -18,14 +19,13 @@ internal class PluginLoader : MonoBehaviour
     //there shouldn't be any issues with making this static, but if there are let me know
     private static List<Plugin> plugins = new List<Plugin>(); 
 
-    void Start()
+    public void Initialize()
     {
-        DontDestroyOnLoad(gameObject);
         if(!Application.isEditor || LOAD_PLUGINS_IN_EDITOR)
             LoadAssemblies();
     }
 
-    void OnDestroy()
+    public void Dispose()
     {
         BroadcastEvent<ExitAttribute>();
     }

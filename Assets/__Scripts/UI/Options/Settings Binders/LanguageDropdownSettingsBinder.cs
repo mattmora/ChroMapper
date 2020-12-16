@@ -32,7 +32,7 @@ public class LanguageDropdownSettingsBinder : SettingsBinder
         }
 
         dropdown.options = options;
-        dropdown.value = selected;
+        dropdown.SetValueWithoutNotify(selected);
     }
 
     public void SendDropdownToSettings(int value)
