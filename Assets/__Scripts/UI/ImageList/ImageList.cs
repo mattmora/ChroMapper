@@ -18,7 +18,7 @@ public class ImageList : ScriptableObject {
     
     public Sprite GetRandomSprite()
     {
-        return Settings.Instance.DarkTheme ? DarkSprite : sprites[Random.Range(0, sprites.Length)];
+        return DarkSprite;
     }
 
     public Sprite GetBGSprite(BeatSaberSong song)

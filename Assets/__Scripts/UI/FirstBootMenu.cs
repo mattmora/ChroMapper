@@ -12,7 +12,8 @@ using SFB;
 using TMPro;
 using Zenject;
 
-public class FirstBootMenu : MonoBehaviour {
+public class FirstBootMenu : MonoBehaviour
+{
 
     [SerializeField] private GameObject directoryCanvas;
     [SerializeField] private TMP_InputField directoryField;
@@ -34,7 +35,10 @@ public class FirstBootMenu : MonoBehaviour {
     {
         this.settings = settings;
         this.sceneTransitionManager = sceneTransitionManager;
+    }
 
+    private void Start()
+    {
         if (settings.ValidateInstallation(null))
         {
             Debug.Log("Auto loaded directory");
@@ -152,13 +156,14 @@ public class FirstBootMenu : MonoBehaviour {
         }
     }
 
-    public void FirstBootRequirementsMet() {
+    public void FirstBootRequirementsMet()
+    {
         ColourHistory.Load(); //Load color history from file.
-        CustomPlatformsLoader.Instance.Init();
         sceneTransitionManager.LoadScene("01_SongSelectMenu");
     }
 
-    public void ToggleHelp() {
+    public void ToggleHelp()
+    {
         helpPanel.SetActive(!helpPanel.activeSelf);
     }
 

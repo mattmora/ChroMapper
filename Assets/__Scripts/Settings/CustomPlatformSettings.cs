@@ -5,14 +5,16 @@ using System.Security.Cryptography;
 using System.Text;
 using UnityEditor;
 using UnityEngine;
+using Zenject;
 
-public class CustomPlatformSettings
+public class CustomPlatformSettings : IInitializable
 {
-
-    private static CustomPlatformSettings _instance;
-    public static CustomPlatformSettings Instance => _instance ?? (_instance = Load());
-
     public Dictionary<string, PlatformInfo> CustomPlatformsDictionary = new Dictionary<string, PlatformInfo>();
+
+    public void Initialize()
+    {
+        LoadCustomEnvironments();
+    }
 
     public GameObject[] LoadPlatform(string name)
     {
@@ -26,7 +28,7 @@ public class CustomPlatformSettings
         return platformPrefab;
     }
 
-    private void loadCustomEnvironments()
+    private void LoadCustomEnvironments()
     {
         string beatSaberCustomPlatforms = Settings.Instance.CustomPlatformsFolder;
 
@@ -66,16 +68,8 @@ public class CustomPlatformSettings
             }
         }
     }
-
-    private static CustomPlatformSettings Load()
-    {
-        CustomPlatformSettings cpSettings = new CustomPlatformSettings();
-
-        cpSettings.loadCustomEnvironments();
-
-        return cpSettings;
-    }
 }
+
 public struct PlatformInfo
 {
     public FileInfo Info;

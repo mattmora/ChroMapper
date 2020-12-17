@@ -6,16 +6,17 @@ using System.Reflection;
 using UnityEngine;
 using System.Globalization;
 using System.Collections.Generic;
+using Zenject;
 
-public class Settings
+public class Settings : IInitializable, IDisposable
 {
     // TODO: Remove, all classes should retrieve this via Zenject
-    public static Settings Instance { get; private set; } = new Settings();
+    public static Settings Instance { get; private set; }
 
     public string BeatSaberInstallation = "";
-    public string CustomSongsFolder => ConvertToDirectory(BeatSaberInstallation + "/Beat Saber_Data/CustomLevels");
-    public string CustomWIPSongsFolder => ConvertToDirectory(BeatSaberInstallation + "/Beat Saber_Data/CustomWIPLevels");
-    public string CustomPlatformsFolder => ConvertToDirectory(BeatSaberInstallation + "/CustomPlatforms");
+    public string CustomSongsFolder => Path.Combine(BeatSaberInstallation, "Beat Saber_Data", "CustomLevels");
+    public string CustomWIPSongsFolder => Path.Combine(BeatSaberInstallation, "Beat Saber_Data", "CustomWIPLevels");
+    public string CustomPlatformsFolder => Path.Combine(BeatSaberInstallation, "CustomPlatforms");
 
     public bool DiscordRPCEnabled = true;
     public float EditorScale = 4;
@@ -96,75 +97,73 @@ public class Settings
 
     private static Dictionary<string, Action<object>> nameToActions = new Dictionary<string, Action<object>>();
 
-    public Settings()
+    public void Initialize()
     {
-        AllFieldInfos = new Dictionary<string, FieldInfo>();
+        Instance = this;
         bool settingsFailed = false;
 
         Type type = GetType();
-        MemberInfo[] infos = type.GetMembers(BindingFlags.Public | BindingFlags.Instance);
+        FieldInfo[] infos = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
         if (!File.Exists(Application.persistentDataPath + "/ChroMapperSettings.json"))
-        { //Without this code block, new users of ChroMapper will launch the Options menu to dozens of KeyNotFoundExceptions
+        {
+            // Without this code block, new users of ChroMapper will launch the Options menu to dozens of KeyNotFoundExceptions
             foreach (MemberInfo info in infos)
             {
                 if (!(info is FieldInfo field)) continue;
                 AllFieldInfos.Add(field.Name, field);
             }
+            return;
         }
-        else
+
+        using (StreamReader reader = new StreamReader(Application.persistentDataPath + "/ChroMapperSettings.json"))
         {
-            using (StreamReader reader = new StreamReader(Application.persistentDataPath + "/ChroMapperSettings.json"))
+            JSONNode mainNode = JSON.Parse(reader.ReadToEnd());
+
+            foreach (FieldInfo field in infos)
             {
-                JSONNode mainNode = JSON.Parse(reader.ReadToEnd());
-
-                foreach (MemberInfo info in infos)
+                try
                 {
-                    try
+                    AllFieldInfos.Add(field.Name, field);
+                    if (mainNode[field.Name] != null)
                     {
-                        if (!(info is FieldInfo field)) continue;
-                        Debug.LogWarning($"{field is null} | {field.Name is null} | {AllFieldInfos.ContainsKey(field.Name)}");
-                        AllFieldInfos.Add(field.Name, field);
-                        if (mainNode[field.Name] != null)
+                        if (mainNode[field.Name] is JSONArray arr)
                         {
-                            if (mainNode[field.Name] is JSONArray arr)
+                            Array newArr = Array.CreateInstance(field.FieldType.GetElementType(), arr.Count);
+                            for (int i = 0; i < arr.Count; i++)
                             {
-                                Array newArr = Array.CreateInstance(field.FieldType.GetElementType(), arr.Count);
-                                for (int i = 0; i < arr.Count; i++)
+                                if (arr[i] == null) continue;
+
+                                var elementType = field.FieldType.GetElementType();
+                                var element = Activator.CreateInstance(elementType);
+
+                                if (element is IJSONSetting elementJSON)
                                 {
-                                    if (arr[i] == null) continue;
-
-                                    var elementType = field.FieldType.GetElementType();
-                                    var element = Activator.CreateInstance(elementType);
-
-                                    if (element is IJSONSetting elementJSON)
-                                    {
-                                        elementJSON.FromJSON(arr[i]);
-                                        newArr.SetValue(elementJSON, i);
-                                    }
-                                    else
-                                    {
-                                        newArr.SetValue(Convert.ChangeType(arr[i], elementType), i);
-                                    }
+                                    elementJSON.FromJSON(arr[i]);
+                                    newArr.SetValue(elementJSON, i);
                                 }
-                                field.SetValue(this, newArr);
+                                else
+                                {
+                                    newArr.SetValue(Convert.ChangeType(arr[i], elementType), i);
+                                }
                             }
-                            else if (typeof(IJSONSetting).IsAssignableFrom(field.FieldType))
-                            {
-                                var elementJSON = (IJSONSetting)Activator.CreateInstance(field.FieldType);
-                                elementJSON.FromJSON(mainNode[field.Name].Value);
-                                field.SetValue(this, elementJSON);
-                            }
-                            else
-                            {
-                                field.SetValue(this, Convert.ChangeType(mainNode[field.Name].Value, field.FieldType));
-                            }
+                            field.SetValue(this, newArr);
+                        }
+                        else if (typeof(IJSONSetting).IsAssignableFrom(field.FieldType))
+                        {
+                            var elementJSON = (IJSONSetting)Activator.CreateInstance(field.FieldType);
+                            elementJSON.FromJSON(mainNode[field.Name].Value);
+                            field.SetValue(this, elementJSON);
+                        }
+                        else
+                        {
+                            field.SetValue(this, Convert.ChangeType(mainNode[field.Name].Value, field.FieldType));
                         }
                     }
-                    catch (Exception e)
-                    {
-                        Debug.LogWarning($"Setting {info.Name} failed to load.\n{e}");
-                        settingsFailed = true;
-                    }
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning($"Setting {field.Name} failed to load.\n{e}");
+                    settingsFailed = true;
                 }
             }
         }
@@ -191,11 +190,11 @@ public class Settings
         Reminder_SettingsFailed = res == 0;
     }
 
-    public void Save()
+    public void Dispose()
     {
-        JSONObject mainNode = new JSONObject();
-        Type type = GetType();
-        FieldInfo[] infos = type.GetMembers(BindingFlags.Public | BindingFlags.Instance).Where(x => x is FieldInfo).OrderBy(x => x.Name).Cast<FieldInfo>().ToArray();
+        var mainNode = new JSONObject();
+        var type = GetType();
+        var infos = type.GetFields(BindingFlags.Public | BindingFlags.Instance).OrderBy(x => x.Name);
         foreach (FieldInfo info in infos)
         {
             var val = info.GetValue(this);
@@ -293,7 +292,8 @@ public class Settings
     }
 
     // TODO: Replace with instance Validate method as Zenjecification continues
-    public static bool ValidateDirectory(Action<string> errorFeedback = null) {
+    public static bool ValidateDirectory(Action<string> errorFeedback = null)
+    {
         if (!Directory.Exists(Instance.BeatSaberInstallation)) {
             errorFeedback?.Invoke("validate.missing");
             return false;

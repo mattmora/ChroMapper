@@ -8,6 +8,7 @@ using UnityEngine.Localization;
 using UnityEngine.Localization.Settings;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.UI;
+using Zenject;
 
 public class PersistentUI : MonoBehaviour {
 
@@ -20,12 +21,6 @@ public class PersistentUI : MonoBehaviour {
 
     private void Awake()
     {
-        if (Instance != null)
-        {
-            Destroy(gameObject);
-            return;
-        }
-        DontDestroyOnLoad(gameObject);
         Instance = this;
     }
 
@@ -89,10 +84,12 @@ public class PersistentUI : MonoBehaviour {
 
     public bool enableTransitions = true;
 
-    private void Start() {
-        CMInputCallbackInstaller.PersistentObject(transform);
-        LocalizationSettings.SelectedLocale = Locale.CreateLocale(Settings.Instance.Language);
-        AudioListener.volume = Settings.Instance.Volume;
+    [Inject]
+    private void Init(Settings settings)
+    {
+        //CMInputCallbackInstaller.PersistentObject(transform);
+        LocalizationSettings.SelectedLocale = Locale.CreateLocale(settings.Language);
+        AudioListener.volume = settings.Volume;
         centerDisplay.host = this;
         bottomDisplay.host = this;
     }
@@ -104,7 +101,6 @@ public class PersistentUI : MonoBehaviour {
     private void OnApplicationQuit()
     {
         ColourHistory.Save();
-        Settings.Instance.Save();
     }
 
     public void DisplayMessage(string message, DisplayMessageType type) {

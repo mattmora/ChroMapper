@@ -5,6 +5,7 @@ using UnityEngine;
 using Discord;
 using System.Linq;
 using System;
+using Zenject;
 
 public class DiscordController : MonoBehaviour
 {
@@ -19,10 +20,10 @@ public class DiscordController : MonoBehaviour
     private PlatformDescriptor platform;
     private Coroutine mapPresenceRoutine;
 
-    // Start is called before the first frame update
-    private void Start()
+    [Inject]
+    private void Init(Settings settings)
     {
-        if (Settings.Instance.DiscordRPCEnabled == false) return;
+        if (settings.DiscordRPCEnabled == false) return;
         try
         {
             if (long.TryParse(clientIDTextAsset.text, out long discordClientID) && Application.internetReachability != NetworkReachability.NotReachable)

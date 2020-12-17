@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Zenject;
 using static CustomFloorPlugin.TubeLight;
 
 //TODO: Worklog
@@ -13,10 +14,9 @@ using static CustomFloorPlugin.TubeLight;
 
 public class CustomPlatformsLoader : MonoBehaviour
 {
-    private static CustomPlatformsLoader _instance;
-    public static CustomPlatformsLoader Instance => _instance ?? (_instance = Load());
+    public static CustomPlatformsLoader Instance { get; private set; }
 
-    private CustomPlatformSettings customPlatformSettings = CustomPlatformSettings.Instance;
+    private CustomPlatformSettings customPlatformSettings;
     private List<string> platformsOnly = new List<string>();
     private List<string> environmentsOnly = new List<string>();
 
@@ -25,8 +25,32 @@ public class CustomPlatformsLoader : MonoBehaviour
     private int lightManagersCount = 0;
     private Dictionary<string, LightsManager> customLightsManager = new Dictionary<string, LightsManager>();
 
-    public void Init()
+    [Inject]
+    public void Init(CustomPlatformSettings platformSettings)
     {
+        customPlatformSettings = platformSettings;
+        Instance = this;
+
+        foreach (string platformName in GetAllEnvironmentIds())
+        {
+            GameObject platform = LoadPlatform(platformName);
+
+            CustomPlatform cp = FindCustomPlatformScript(platform);
+
+            if (cp != null)
+            {
+                if (!cp.hideHighway && !cp.hideTowers && cp.hideDefaultPlatform && !cp.hideEQVisualizer && !cp.hideSmallRings && !cp.hideBigRings && !cp.hideBackColumns && !cp.hideBackLasers && !cp.hideDoubleLasers && !cp.hideDoubleColorLasers && !cp.hideRotatingLasers && !cp.hideTrackLights)
+                {
+                    platformsOnly.Add(platformName);
+                }
+                else
+                {
+                    environmentsOnly.Add(platformName);
+                }
+            }
+
+            DestroyImmediate(platform, true);
+        }
     }
 
     private void Awake()
@@ -35,38 +59,6 @@ public class CustomPlatformsLoader : MonoBehaviour
         lightMaterial = new Material(Resources.Load("ControllableLight", typeof(Material)) as Material);
 
         useThisBlack = new Material(Resources.Load("Basic Black", typeof(Material)) as Material);
-    }
-
-    private static CustomPlatformsLoader Load()
-    {
-        CustomPlatformsLoader cpl = new GameObject("Custom Platforms Loader").AddComponent<CustomPlatformsLoader>();
-        DontDestroyOnLoad(cpl.gameObject);
-
-        //PlatformsOnly
-        foreach (string platformName in cpl.GetAllEnvironmentIds())
-        {
-            GameObject platform = cpl.LoadPlatform(platformName);
-
-            CustomPlatform cp = cpl?.FindCustomPlatformScript(platform);
-
-            if (cp != null)
-            {
-                if (!cp.hideHighway && !cp.hideTowers && cp.hideDefaultPlatform && !cp.hideEQVisualizer && !cp.hideSmallRings && !cp.hideBigRings && !cp.hideBackColumns && !cp.hideBackLasers && !cp.hideDoubleLasers && !cp.hideDoubleColorLasers && !cp.hideRotatingLasers && !cp.hideTrackLights)
-                {
-                    cpl.platformsOnly.Add(platformName);
-                }
-                else
-                {
-                    cpl.environmentsOnly.Add(platformName);
-                }
-            }
-
-
-            DestroyImmediate(platform, true);
-        }
-
-
-        return cpl;
     }
 
     public GameObject LoadPlatform(string customEnvironmentString, GameObject defaultEnvironment = null, string customPlatformString = null)
@@ -622,12 +614,12 @@ public class CustomPlatformsLoader : MonoBehaviour
 
     public List<string> GetAllEnvironmentIds()
     {
-        return CustomPlatformSettings.Instance.CustomPlatformsDictionary.Keys.ToList();
+        return customPlatformSettings.CustomPlatformsDictionary.Keys.ToList();
     }
 
     public int GetEnvironmentIdByPlatform(string platform)
     {
-        return CustomPlatformSettings.Instance.CustomPlatformsDictionary.Keys.ToList().IndexOf(platform);
+        return customPlatformSettings.CustomPlatformsDictionary.Keys.ToList().IndexOf(platform);
     }
 
     CustomPlatform FindCustomPlatformScript(GameObject prefab)
