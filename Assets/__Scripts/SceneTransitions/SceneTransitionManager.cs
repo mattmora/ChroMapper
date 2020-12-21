@@ -97,12 +97,6 @@ public class SceneTransitionManager : MonoBehaviour
         if (IsLoading) externalRoutines.Enqueue(routine);
     }
 
-    public SceneTransitionManager WithLoadRoutines(params IEnumerator[] routines)
-    {
-        foreach (IEnumerator routine in routines) externalRoutines.Enqueue(routine);
-        return this;
-    }
-
     private IEnumerator SceneTransition()
     {
         yield return persistentUI.FadeInLoadingScreen();
@@ -137,13 +131,5 @@ public class SceneTransitionManager : MonoBehaviour
             yield return persistentUI.DisplayMessage(message, PersistentUI.DisplayMessageType.BOTTOM);
         }
         yield return persistentUI.FadeOutLoadingScreen();
-    }
-
-    private void BindAllDataIntoContainer(DiContainer container, object[] data)
-    {
-        foreach (var obj in data)
-        {
-            container.Bind(obj.GetType()).FromInstance(obj);
-        }
     }
 }

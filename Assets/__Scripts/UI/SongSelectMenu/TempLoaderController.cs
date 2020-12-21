@@ -30,7 +30,7 @@ public class TempLoaderController : MonoBehaviour
             string escaped = $"{beatSaverDownloadUrl}{location}";
             Uri uri = new Uri(escaped, UriKind.Absolute);
             SceneTransitionManager.Instance.LoadScene("02_SongEditMenu")
-                .WithLoadRoutines(GetBeatmapFromLocation(uri));
+                .WithEarlyLoadRoutines(GetBeatmapFromLocation(uri));
         }
         else // If not, handle it as a direct link to a zip file.
         {
@@ -40,7 +40,7 @@ public class TempLoaderController : MonoBehaviour
                 if (Uri.TryCreate(location, UriKind.Absolute, out Uri uri))
                 {
                     SceneTransitionManager.Instance.LoadScene("02_SongEditMenu")
-                        .WithLoadRoutines(GetBeatmapFromLocation(uri));
+                        .WithEarlyLoadRoutines(GetBeatmapFromLocation(uri));
                 }
                 else
                 {
