@@ -513,7 +513,11 @@ public class SongInfoEditUI : MenuBase
                 Settings.Instance.LastLoadedChar = BeatSaberSongContainer.Instance.difficultyData.parentBeatmapSet.beatmapCharacteristicName;
                 Settings.Instance.LastLoadedDiff = BeatSaberSongContainer.Instance.difficultyData.difficulty;
                 BeatSaberSongContainer.Instance.map = map;
-                SceneTransitionManager.Instance.LoadScene("03_Mapper", LoadAudio(false));
+
+                // TODO: Extract currently selected difficulty data and inject that into the mapper scene as well
+                SceneTransitionManager.Instance.LoadScene("03_Mapper")
+                    .WithEarlyLoadRoutines(LoadAudio(false))
+                    .WithDataInjectedEarly(Song, map, previewAudio.clip);
             }
         }
     }

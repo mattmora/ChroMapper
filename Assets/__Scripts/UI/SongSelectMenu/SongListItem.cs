@@ -1,27 +1,38 @@
 ﻿using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
+using Zenject;
 
-public class SongListItem : MonoBehaviour {
-
-    [SerializeField]
-    TextMeshProUGUI text;
-
-    [SerializeField]
-    Button button;
+public class SongListItem : MonoBehaviour
+{
+    [SerializeField] private TextMeshProUGUI text;
+    [SerializeField] private Button button;
 
     private BeatSaberSong song;
+    private SceneTransitionManager sceneTransitionManager;
 
-    public void AssignSong(BeatSaberSong song) {
+    [Inject]
+    public void Construct(SceneTransitionManager sceneTransitionManager)
+    {
+        this.sceneTransitionManager = sceneTransitionManager;
+    }
+
+    public void AssignSong(BeatSaberSong song)
+    {
         this.song = song;
         button.onClick.RemoveAllListeners();
         button.onClick.AddListener(ButtonClicked);
         text.text = $"{song.songName.StripTMPTags()} <size=50%><i>{song.songSubName.StripTMPTags()}</i></size>";
     }
 
-    void ButtonClicked() {
+    void ButtonClicked()
+    {
         Debug.Log("Edit button for song " + song.songName);
-        if (BeatSaberSongContainer.Instance != null && song != null) BeatSaberSongContainer.Instance.SelectSongForEditing(song);
+        if (song != null)
+        {
+            BeatSaberSongContainer.Instance.SelectSongForEditing(song);
+            sceneTransitionManager.LoadScene("02_SongEditMenu").WithDataInjectedEarly(song);
+        }
     }
-
 }
