@@ -5,11 +5,22 @@ using System.IO.Compression;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
+using Zenject;
 
 public class TempLoaderController : MonoBehaviour
 {
     // Location to the API endpoint to download a map from its BeatSaver ID
     private const string beatSaverDownloadUrl = "https://beatsaver.com/api/download/key/";
+
+    private SceneTransitionManager sceneTransitionManager;
+    private PersistentUI persistentUI;
+
+    [Inject]
+    private void Construct(SceneTransitionManager sceneTransitionManager, PersistentUI persistentUI)
+    {
+        this.sceneTransitionManager = sceneTransitionManager;
+        this.persistentUI = persistentUI;
+    }
 
     public void OpenTempLoader()
     {
@@ -29,8 +40,8 @@ public class TempLoaderController : MonoBehaviour
         {
             string escaped = $"{beatSaverDownloadUrl}{location}";
             Uri uri = new Uri(escaped, UriKind.Absolute);
-            SceneTransitionManager.Instance.LoadScene("02_SongEditMenu")
-                .WithEarlyLoadRoutines(GetBeatmapFromLocation(uri));
+            var builder = sceneTransitionManager.LoadScene("02_SongEditMenu");
+            builder.WithEarlyLoadRoutines(GetBeatmapFromLocation(uri, builder));
         }
         else // If not, handle it as a direct link to a zip file.
         {
@@ -39,8 +50,8 @@ public class TempLoaderController : MonoBehaviour
                 // This is definitely more open so let's see if we can even create a Uri out of this.
                 if (Uri.TryCreate(location, UriKind.Absolute, out Uri uri))
                 {
-                    SceneTransitionManager.Instance.LoadScene("02_SongEditMenu")
-                        .WithEarlyLoadRoutines(GetBeatmapFromLocation(uri));
+                    var builder = sceneTransitionManager.LoadScene("02_SongEditMenu");
+                    builder.WithEarlyLoadRoutines(GetBeatmapFromLocation(uri, builder));
                 }
                 else
                 {
@@ -54,7 +65,7 @@ public class TempLoaderController : MonoBehaviour
         }
     }
 
-    private IEnumerator GetBeatmapFromLocation(Uri uri)
+    private IEnumerator GetBeatmapFromLocation(Uri uri, SceneTransitionBuilder builder)
     {
         // We will extract the contents of the zip to the temp directory, so we will save the zip in memory.
         DownloadHandlerBuffer downloadHandler = new DownloadHandlerBuffer();
@@ -66,9 +77,9 @@ public class TempLoaderController : MonoBehaviour
         request.SetRequestHeader("User-Agent", $"{Application.productName}/{Application.version}");
 
         // Set progress bar state.
-        PersistentUI.Instance.LevelLoadSlider.gameObject.SetActive(true);
-        PersistentUI.Instance.LevelLoadSlider.value = 0;
-        PersistentUI.Instance.LevelLoadSliderLabel.text = $"Downloading file... Starting download...";
+        persistentUI.LevelLoadSlider.gameObject.SetActive(true);
+        persistentUI.LevelLoadSlider.value = 0;
+        persistentUI.LevelLoadSliderLabel.text = $"Downloading file... Starting download...";
 
         var operation = request.SendWebRequest();
         while (!request.isDone)
@@ -77,14 +88,14 @@ public class TempLoaderController : MonoBehaviour
             if (int.TryParse(request.GetResponseHeader("Content-Length"), out int length))
             {
                 float progress = downloadHandler.data.Length / (float)length;
-                PersistentUI.Instance.LevelLoadSlider.value = progress;
+                persistentUI.LevelLoadSlider.value = progress;
                 float percent = progress * 100;
-                PersistentUI.Instance.LevelLoadSliderLabel.text = $"Downloading file... {percent:F2}% complete.";
+                persistentUI.LevelLoadSliderLabel.text = $"Downloading file... {percent:F2}% complete.";
             }
             else
             {
                 // Just gives the bar something to do until we get the content length.
-                PersistentUI.Instance.LevelLoadSlider.value = (Mathf.Sin(Time.time) / 2) + 0.5f;
+                persistentUI.LevelLoadSlider.value = (Mathf.Sin(Time.time) / 2) + 0.5f;
             }
 
             // Cancel loading if an error has occurred.
@@ -108,8 +119,8 @@ public class TempLoaderController : MonoBehaviour
         // If the request failed, our downloaded bytes will be null. Let's check that.
         if (downloaded != null)
         {
-            PersistentUI.Instance.LevelLoadSlider.value = 1;
-            PersistentUI.Instance.LevelLoadSliderLabel.text = "Extracting contents...";
+            persistentUI.LevelLoadSlider.value = 1;
+            persistentUI.LevelLoadSliderLabel.text = "Extracting contents...";
 
             yield return new WaitForEndOfFrame();
 
@@ -135,8 +146,9 @@ public class TempLoaderController : MonoBehaviour
                 BeatSaberSong song = BeatSaberSong.GetSongFromFolder(directory);
                 if (song != null)
                 {
-                    PersistentUI.Instance.LevelLoadSliderLabel.text = "Loading song...";
+                    persistentUI.LevelLoadSliderLabel.text = "Loading song...";
                     BeatSaberSongContainer.Instance.song = song;
+                    builder.WithDataInjectedEarly(song);
                 }
                 else
                 {
@@ -169,18 +181,18 @@ public class TempLoaderController : MonoBehaviour
 
     private void CancelTempLoader(string error)
     {
-        PersistentUI.Instance.ShowDialogBox(
+        persistentUI.ShowDialogBox(
             $"Temp Loader failed with the following message:\n\n{error}",
             null,
             PersistentUI.DialogBoxPresetType.Ok);
-        SceneTransitionManager.Instance.CancelLoading("");
+        sceneTransitionManager.CancelLoading("");
         ResetProgressBar();
     }
 
     private void ResetProgressBar()
     {
-        PersistentUI.Instance.LevelLoadSlider.value = 0;
-        PersistentUI.Instance.LevelLoadSlider.gameObject.SetActive(false);
-        PersistentUI.Instance.LevelLoadSliderLabel.text = "";
+        persistentUI.LevelLoadSlider.value = 0;
+        persistentUI.LevelLoadSlider.gameObject.SetActive(false);
+        persistentUI.LevelLoadSliderLabel.text = "";
     }
 }

@@ -24,9 +24,12 @@ public class SceneTransitionBuilder
     private readonly List<object> earlyLoadData = new List<object>();
     private readonly List<object> lateLoadData = new List<object>();
 
-    public SceneTransitionBuilder(string sceneName)
+    private SceneTransitionManager manager;
+
+    public SceneTransitionBuilder(string sceneName, SceneTransitionManager manager)
     {
         SceneName = sceneName;
+        this.manager = manager;
     }
 
     /// <summary>
@@ -109,11 +112,15 @@ public class SceneTransitionBuilder
     {
         HasTransitioned = true;
 
+        foreach (IEnumerator routine in earlyLoadRoutines) yield return manager.StartCoroutine(routine);
+
         yield return sceneLoader.LoadSceneAsync(SceneName,
             LoadSceneMode,
             container => BindDataAndCallAction(container, EarlyBindingAction, earlyLoadData),
             LoadSceneRelationship,
             container => BindDataAndCallAction(container, LateBindingAction, lateLoadData));
+
+        foreach (IEnumerator routine in lateLoadRoutines) yield return manager.StartCoroutine(routine);
     }
 
     private void BindDataAndCallAction(DiContainer container, Action<DiContainer> action, IEnumerable<object> data)

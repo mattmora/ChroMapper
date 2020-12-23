@@ -9,17 +9,18 @@ using static BeatSaberSong;
 
 public class DifficultySelect : MonoBehaviour
 {
-
     [SerializeField] private TMP_InputField njsField;
     [SerializeField] private TMP_InputField songBeatOffsetField;
     [SerializeField] private CharacteristicSelect characteristicSelect;
     [SerializeField] private Color copyColor;
     [SerializeField] private EnvRemoval envRemoval;
 
+    public Dictionary<string, Dictionary<string, DifficultySettings>> Characteristics;
+    public DifficultyBeatmap CurrentlySelectedDifficulty { get; private set; } = null;
+
     private bool loading = false;
     private DifficultyBeatmapSet currentCharacteristic;
     private Dictionary<string, DifficultySettings> diffs;
-    public Dictionary<string, Dictionary<string, DifficultySettings>> Characteristics;
 
     private Dictionary<string, int> diffRankLookup = new Dictionary<string, int>()
     {
@@ -196,7 +197,7 @@ public class DifficultySelect : MonoBehaviour
             }
             else
             {
-                File.Move(oldPath, map.directoryAndFile); //This should properly "convert" difficulties just fine
+                File.Move(oldPath, map.directoryAndFile); // This should properly "convert" difficulties just fine
             }
         }
         else
@@ -248,6 +249,7 @@ public class DifficultySelect : MonoBehaviour
             selImage.color = new Color(selImage.color.r, selImage.color.g, selImage.color.b, 0.0f);
 
             // Clean the UI, if we're selecting a new item they'll be repopulated
+            // TODO: Remove
             BeatSaberSongContainer.Instance.difficultyData = null;
             njsField.text = "";
             songBeatOffsetField.text = "";
@@ -290,6 +292,7 @@ public class DifficultySelect : MonoBehaviour
         selImage.color = new Color(selImage.color.r, selImage.color.g, selImage.color.b, 1.0f);
 
         var diff = diffs[row.Name];
+        // TODO: Remove
         BeatSaberSongContainer.Instance.difficultyData = diff.DifficultyBeatmap;
 
         njsField.text = diff.NoteJumpMovementSpeed.ToString();

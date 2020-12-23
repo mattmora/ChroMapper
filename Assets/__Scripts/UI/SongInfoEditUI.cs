@@ -1,17 +1,19 @@
-﻿using System.IO;
+﻿using SFB;
+using SimpleJSON;
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using System.Linq;
-using SimpleJSON;
 using UnityEngine.Networking;
-using System.Globalization;
-using System.IO.Compression;
-using System.Collections;
-using System.Collections.Generic;
 using static UnityEngine.InputSystem.InputAction;
+using Zenject;
 
 public class SongInfoEditUI : MenuBase
 {
@@ -53,9 +55,9 @@ public class SongInfoEditUI : MenuBase
         new Environment("BTS", "BTSEnvironment")
     };
 
-    private static List<string> VanillaDirectionalEnvironments = new List<string>()
+    private static List<Environment> VanillaDirectionalEnvironments = new List<Environment>()
     {
-        "GlassDesertEnvironment"
+        new Environment("Glass Desert", "GlassDesertEnvironment")
     };
 
     public static List<string> CharacteristicDropdownToBeatmapName = new List<string>()
@@ -69,23 +71,21 @@ public class SongInfoEditUI : MenuBase
         "Lawless"
     };
 
-    public static int GetDirectionalEnvironmentIDFromString(string platforms)
+    public static int GetDirectionalEnvironmentIDFromString(string environment)
     {
-        return VanillaDirectionalEnvironments.IndexOf(platforms);
+        int result = VanillaDirectionalEnvironments.TakeWhile(i => i.jsonName != environment).Count();
+        return result == VanillaDirectionalEnvironments.Count ? 0 : result;
     }
 
-    public static int GetEnvironmentIDFromString(string environment) {
+    public static int GetEnvironmentIDFromString(string environment)
+    {
         int result = VanillaEnvironments.TakeWhile(i => i.jsonName != environment).Count();
         return result == VanillaEnvironments.Count ? 0 : result;
     }
 
-    public static string GetEnvironmentNameFromID(int id) {
-        return VanillaEnvironments[id].jsonName;
-    }
+    public static string GetEnvironmentNameFromID(int id) => VanillaEnvironments[id].jsonName;
 
-    BeatSaberSong Song {
-        get { return BeatSaberSongContainer.Instance.song; }
-    }
+    BeatSaberSong Song;
 
     [SerializeField] DifficultySelect difficultySelect;
     [SerializeField] TMP_InputField nameField;
@@ -108,11 +108,17 @@ public class SongInfoEditUI : MenuBase
 
     [SerializeField] ContributorsController contributorController;
 
-    void Start() {
-        if (BeatSaberSongContainer.Instance == null) {
-            SceneManager.LoadScene(0);
-            return;
-        }
+    [Inject]
+    private void Construct(BeatSaberSong song)
+    {
+        this.Song = song;
+
+        environmentDropdown.ClearOptions();
+        environmentDropdown.AddOptions(VanillaEnvironments.Select(it => it.humanName).ToList());
+
+        customPlatformsDropdown.ClearOptions();
+        customPlatformsDropdown.AddOptions(new List<string> { "None" });
+        customPlatformsDropdown.AddOptions(CustomPlatformsLoader.Instance.GetAllEnvironmentIds());
 
         LoadFromSong();
     }
@@ -138,7 +144,8 @@ public class SongInfoEditUI : MenuBase
     /// <summary>
     /// Save the changes the user has made in the song info panel
     /// </summary>
-    public void SaveToSong() {
+    public void SaveToSong()
+    {
         Song.songName = nameField.text;
         Song.songSubName = subNameField.text;
         Song.songAuthorName = songAuthorField.text;
@@ -201,24 +208,18 @@ public class SongInfoEditUI : MenuBase
         coverImageField.text = Song.coverImageFilename;
         audioPath.text = Song.songFilename;
 
-        offset.text = Song.songTimeOffset.ToString(CultureInfo.InvariantCulture);
+        offset.text = Song.songTimeOffset.ToString();
         if (Song.songTimeOffset > 0)
         {
             PersistentUI.Instance.ShowDialogBox("SongEditMenu", "songtimeoffset.warning", null,
                 PersistentUI.DialogBoxPresetType.Ok);
         }
 
-        bpmField.text = Song.beatsPerMinute.ToString(CultureInfo.InvariantCulture);
-        prevStartField.text = Song.previewStartTime.ToString(CultureInfo.InvariantCulture);
-        prevDurField.text = Song.previewDuration.ToString(CultureInfo.InvariantCulture);
+        bpmField.text = Song.beatsPerMinute.ToString();
+        prevStartField.text = Song.previewStartTime.ToString();
+        prevDurField.text = Song.previewDuration.ToString();
 
-        environmentDropdown.ClearOptions();
-        environmentDropdown.AddOptions(VanillaEnvironments.Select(it => it.humanName).ToList());
         environmentDropdown.value = GetEnvironmentIDFromString(Song.environmentName);
-
-        customPlatformsDropdown.ClearOptions();
-        customPlatformsDropdown.AddOptions(new List<String> { "None" });
-        customPlatformsDropdown.AddOptions(CustomPlatformsLoader.Instance.GetAllEnvironmentIds());
 
         customPlatformsDropdown.value = CustomPlatformFromSong();
         if (customPlatformsDropdown.value == 0)
@@ -243,15 +244,9 @@ public class SongInfoEditUI : MenuBase
             {
                 return CustomPlatformsLoader.Instance.GetAllEnvironmentIds().IndexOf(Song.customData["_customEnvironment"]) + 1;
             }
-            else
-            { //For some reason the text defaults to "Dueling Dragons", not what we want.
-                return 0;
-            }
-        }
-        else
-        {
             return 0;
         }
+        return 0;
     }
 
     /// <summary>
@@ -287,8 +282,7 @@ public class SongInfoEditUI : MenuBase
         {
             if (audioPath.text.ToLower().EndsWith("ogg") || audioPath.text.ToLower().EndsWith("egg"))
             {
-                Debug.Log("Lets go");
-                UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip($"file:///{Uri.EscapeDataString($"{fullPath}")}", AudioType.OGGVORBIS);
+                UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip($"file:///{Uri.EscapeDataString(fullPath)}", AudioType.OGGVORBIS);
                 //Escaping should fix the issue where half the people can't open ChroMapper's editor (I believe this is caused by spaces in the directory, hence escaping)
                 yield return www.SendWebRequest();
                 Debug.Log("Song loaded!");

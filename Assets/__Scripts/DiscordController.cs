@@ -23,7 +23,8 @@ public class DiscordController : MonoBehaviour
     [Inject]
     private void Init(Settings settings)
     {
-        if (settings.DiscordRPCEnabled == false) return;
+        if (!settings.DiscordRPCEnabled) return;
+
         try
         {
             if (long.TryParse(clientIDTextAsset.text, out long discordClientID) && Application.internetReachability != NetworkReachability.NotReachable)
@@ -34,19 +35,19 @@ public class DiscordController : MonoBehaviour
                 SceneManager.activeSceneChanged += SceneUpdated;
                 LoadInitialMap.PlatformLoadedEvent += LoadPlatform;
             }
-            else HandleException("No internet connection, or invalid Client ID.");
-        }catch(ResultException result)
+            else
+            {
+                HandleException("No internet connection, or invalid Client ID.");
+            }
+        }
+        catch(ResultException result)
         {
             HandleException($"{result.Message} (Perhaps Discord is not open?)");
-        } catch (DllNotFoundException e)
+        }
+        catch (DllNotFoundException e)
         {
             HandleException($"{e.Message} Dll missing?");
         }
-    }
-
-    private void OnApplicationQuit()
-    {
-        discord?.Dispose();
     }
 
     private void LoadPlatform(PlatformDescriptor descriptor)
@@ -80,7 +81,8 @@ public class DiscordController : MonoBehaviour
         {
             Details = details,
             State = state,
-            Timestamps = new ActivityTimestamps() {
+            Timestamps = new ActivityTimestamps()
+            {
                 Start = (long)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds,
             },
             Assets = new ActivityAssets()
@@ -132,6 +134,7 @@ public class DiscordController : MonoBehaviour
 
     private void OnDestroy()
     {
+        discord?.Dispose();
         SceneManager.activeSceneChanged -= SceneUpdated;
         LoadInitialMap.PlatformLoadedEvent -= LoadPlatform;
     }
@@ -142,7 +145,8 @@ public class DiscordController : MonoBehaviour
         try
         {
             if (IsActive) discord?.RunCallbacks();
-        }catch(ResultException resultException)
+        }
+        catch(ResultException resultException)
         {
             HandleException(resultException.Message);
         }
@@ -154,6 +158,5 @@ public class DiscordController : MonoBehaviour
                 "PersistentUI", "discord.error"
                 , null, PersistentUI.DialogBoxPresetType.Ok, new object[] { msg });
         IsActive = false;
-
     }
 }

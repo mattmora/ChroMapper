@@ -45,7 +45,7 @@ public class SceneTransitionManager : MonoBehaviour
         darkThemeSO.DarkThemeifyUI();
         IsLoading = true;
 
-        var builder = new SceneTransitionBuilder(scene);
+        var builder = new SceneTransitionBuilder(scene, this);
         transitions.Enqueue(builder);
 
         ExecuteTransition();
@@ -60,7 +60,7 @@ public class SceneTransitionManager : MonoBehaviour
     /// <returns>A builder class to further configure the transition.</returns>
     public SceneTransitionBuilder EnqueueTransition(string scene)
     {
-        var builder = new SceneTransitionBuilder(scene);
+        var builder = new SceneTransitionBuilder(scene, this);
         transitions.Enqueue(builder);
         return builder;
     }
