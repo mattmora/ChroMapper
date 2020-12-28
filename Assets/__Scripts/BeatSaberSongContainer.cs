@@ -18,9 +18,4 @@ public class BeatSaberSongContainer : MonoBehaviour
     public BeatSaberSong.DifficultyBeatmap difficultyData;
     public AudioClip loadedSong;
     public BeatSaberMap map;
-
-    public void SelectSongForEditing(BeatSaberSong song)
-    {
-        this.song = song;
-    }
 }

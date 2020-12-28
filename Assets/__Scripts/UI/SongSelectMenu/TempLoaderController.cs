@@ -147,7 +147,6 @@ public class TempLoaderController : MonoBehaviour
                 if (song != null)
                 {
                     persistentUI.LevelLoadSliderLabel.text = "Loading song...";
-                    BeatSaberSongContainer.Instance.song = song;
                     builder.WithDataInjectedEarly(song);
                 }
                 else

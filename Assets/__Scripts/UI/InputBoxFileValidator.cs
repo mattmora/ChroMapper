@@ -5,6 +5,7 @@ using System.IO;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Zenject;
 
 public class InputBoxFileValidator : MonoBehaviour
 {
@@ -24,6 +25,16 @@ public class InputBoxFileValidator : MonoBehaviour
 
     private Vector2 startOffset;
 
+    private BeatSaberSong song;
+    private PersistentUI persistentUI;
+
+    [Inject]
+    private void Construct([InjectOptional] BeatSaberSong song, PersistentUI persistentUI)
+    {
+        this.song = song;
+        this.persistentUI = persistentUI;
+    }
+
     public void Awake()
     {
         var transform = inputMask.GetComponent<RectTransform>();
@@ -40,8 +51,6 @@ public class InputBoxFileValidator : MonoBehaviour
 
     public void OnUpdate()
     {
-        BeatSaberSong song = BeatSaberSongContainer.Instance?.song;
-
         string filename = input.text;
         if (!enableValidation || filename.Length == 0 || song?.directory == null)
         {
@@ -81,10 +90,11 @@ public class InputBoxFileValidator : MonoBehaviour
             new ExtensionFilter("All Files", "*"),
         };
 
-        string songDir = BeatSaberSongContainer.Instance.song.directory;
+        string songDir = song.directory;
         CMInputCallbackInstaller.DisableActionMaps(typeof(InputBoxFileValidator), new[] { typeof(CMInput.IMenusExtendedActions) });
         var paths = StandaloneFileBrowser.OpenFilePanel("Open File", songDir, exts, false);
         StartCoroutine(ClearDisabledActionMaps());
+
         if (paths.Length > 0)
         {
             DirectoryInfo directory = new DirectoryInfo(songDir);
@@ -102,7 +112,7 @@ public class InputBoxFileValidator : MonoBehaviour
             {
                 if (FileExistsAlready(songDir, file.Name)) return;
 
-                PersistentUI.Instance.ShowDialogBox("SongEditMenu", "files.badpath", result =>
+                persistentUI.ShowDialogBox("SongEditMenu", "files.badpath", result =>
                 {
                     if (FileExistsAlready(songDir, file.Name)) return;
 
@@ -134,7 +144,7 @@ public class InputBoxFileValidator : MonoBehaviour
 
         if (!File.Exists(newFile)) return false;
 
-        PersistentUI.Instance.ShowDialogBox("SongEditMenu", "files.conflict", result =>
+        persistentUI.ShowDialogBox("SongEditMenu", "files.conflict", result =>
         {
             if (result == 0)
             {

@@ -14,7 +14,8 @@ public class ForwardOnClick : MonoBehaviour, IPointerClickHandler {
         diffSelector = transform.GetComponentInParent<DifficultySelect>();
     }
 
-    public void OnPointerClick(PointerEventData eventData) {
+    public void OnPointerClick(PointerEventData eventData)
+    {
         var diff = transform.parent.parent;
 
         diffSelector?.OnClick(diff);

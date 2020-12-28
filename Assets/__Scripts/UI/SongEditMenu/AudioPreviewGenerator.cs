@@ -17,6 +17,7 @@ public class AudioPreviewGenerator : MonoBehaviour
     [SerializeField] private SongInfoEditUI songInfoEditUI;
     [SerializeField] private RectTransform previewSelection;
     [SerializeField] private Slider previewGenerationSlider;
+    [SerializeField] private AudioSource previewAudioSource;
 
     private Queue<RawImage> cachedTiles = new Queue<RawImage>();
     private List<RawImage> activeTiles = new List<RawImage>();
@@ -42,7 +43,7 @@ public class AudioPreviewGenerator : MonoBehaviour
 
     private IEnumerator RefreshVisuals()
     {
-        if (BeatSaberSongContainer.Instance.loadedSong == null)
+        if (previewAudioSource.clip == null)
         {
             yield break;
         }
@@ -51,6 +52,7 @@ public class AudioPreviewGenerator : MonoBehaviour
         {
             image.gameObject.SetActive(false);
         }
+
         cachedTiles = new Queue<RawImage>(activeTiles);
         activeTiles.Clear();
         previewSelection.gameObject.SetActive(false);
@@ -58,7 +60,7 @@ public class AudioPreviewGenerator : MonoBehaviour
         WaveformData = new WaveformData();
 
         audioManager.SetSecondPerChunk(5);
-        audioManager.Begin(false, spectrogramGradient2d, BeatSaberSongContainer.Instance.loadedSong, WaveformData, null, 5);
+        audioManager.Begin(false, spectrogramGradient2d, previewAudioSource.clip, WaveformData, null, 5);
 
         while (audioManager.IsAlive())
         {
@@ -101,8 +103,12 @@ public class AudioPreviewGenerator : MonoBehaviour
 
     private void UpdatePreviewSelection()
     {
-        if (BeatSaberSongContainer.Instance.loadedSong == null) return;
-        float length = BeatSaberSongContainer.Instance.loadedSong.length;
+        if (previewAudioSource.clip == null)
+        {
+            return;
+        }
+
+        float length = previewAudioSource.clip.length;
 
         // oh god look at all this jank
         float size = (transform.parent.parent as RectTransform).sizeDelta.x + (transform.parent as RectTransform).sizeDelta.x;

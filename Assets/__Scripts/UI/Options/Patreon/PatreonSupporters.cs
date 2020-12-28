@@ -22,10 +22,5 @@ public class PatreonSupporters : ScriptableObject
         }
     }
 
-    public IEnumerable<string> GetAllSupporters()
-    {
-        List<string> supporters = new List<string>(HighTierPatrons);
-        supporters.AddRange(RegularPatrons);
-        return supporters.OrderBy(x => x);
-    }
+    public IEnumerable<string> GetAllSupporters() => HighTierPatrons.Intersect(RegularPatrons).OrderBy(x => x);
 }

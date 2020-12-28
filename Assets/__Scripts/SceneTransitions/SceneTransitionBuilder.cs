@@ -127,6 +127,7 @@ public class SceneTransitionBuilder
     {
         foreach (var obj in data)
         {
+            UnityEngine.Debug.Log($"Binding {obj.GetType().Name}");
             container.Bind(obj.GetType()).FromInstance(obj);
         }
         action?.Invoke(container);

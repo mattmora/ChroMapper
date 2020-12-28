@@ -4,6 +4,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.Localization.Components;
 using UnityEngine.UI;
+using Zenject;
 
 public class SongList : MonoBehaviour
 {
@@ -31,9 +32,17 @@ public class SongList : MonoBehaviour
 
     private IEnumerable<BeatSaberSong> filteredSongs = new List<BeatSaberSong>();
 
+    private Settings settings;
+
+    [Inject]
+    private void Construct(Settings settings)
+    {
+        this.settings = settings;
+        WIPLevels = lastVisited_WasWIP;
+    }
+
     private void Start()
     {
-        WIPLevels = lastVisited_WasWIP;
         RefreshSongList();
     }
 
@@ -50,7 +59,7 @@ public class SongList : MonoBehaviour
 
         FilteredBySearch = !string.IsNullOrEmpty(searchField.text);
         string[] directories;
-        directories = Directory.GetDirectories(WIPLevels ? Settings.Instance.CustomWIPSongsFolder : Settings.Instance.CustomSongsFolder);
+        directories = Directory.GetDirectories(WIPLevels ? settings.CustomWIPSongsFolder : settings.CustomSongsFolder);
         Songs.Clear();
 
         foreach (var dir in directories)

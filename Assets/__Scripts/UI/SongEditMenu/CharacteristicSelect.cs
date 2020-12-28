@@ -3,20 +3,27 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Zenject;
 
 public class CharacteristicSelect : MonoBehaviour
 {
     [SerializeField] private Color selectedColor;
     [SerializeField] private Color normalColor;
     [SerializeField] private DifficultySelect difficultySelect;
+
     private Transform selected;
 
-    BeatSaberSong Song
+    private BeatSaberSong song;
+    private Settings settings;
+
+    [Inject]
+    public void Construct(BeatSaberSong song, Settings settings)
     {
-        get { return BeatSaberSongContainer.Instance?.song; }
+        this.song = song;
+        this.settings = settings;
     }
 
-    public void Start()
+    private void Start()
     {
         foreach (Transform child in transform)
         {
@@ -25,7 +32,7 @@ public class CharacteristicSelect : MonoBehaviour
             var button = child.GetComponent<Button>();
             button.onClick.AddListener(() => OnClick(child));
 
-            if (selected == null || (Settings.Instance.LastLoadedMap.Equals(Song.directory) && Settings.Instance.LastLoadedChar.Equals(child.name)))
+            if (selected == null || (settings.LastLoadedMap.Equals(song.directory) && settings.LastLoadedChar.Equals(child.name)))
             {
                 OnClick(child, true);
             }

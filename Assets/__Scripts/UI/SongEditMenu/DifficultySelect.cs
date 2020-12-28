@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using TMPro;
 using UnityEngine;
+using Zenject;
 using static BeatSaberSong;
 
 public class DifficultySelect : MonoBehaviour
@@ -36,19 +37,23 @@ public class DifficultySelect : MonoBehaviour
     private DifficultyRow selected;
     private Dictionary<string, string> selectedMemory = new Dictionary<string, string>();
 
-    BeatSaberSong Song
-    {
-        get { return BeatSaberSongContainer.Instance?.song; }
-    }
+    private BeatSaberSong song;
+    private PersistentUI persistentUI;
+    private Settings settings;
 
     /// <summary>
     /// Load song data and set up listeners on UI elements
     /// </summary>
-    public void Start()
+    [Inject]
+    public void Construct(BeatSaberSong song, PersistentUI persistentUI, Settings settings)
     {
-        if (Song?.difficultyBeatmapSets != null)
+        this.song = song;
+        this.persistentUI = persistentUI;
+        this.settings = settings;
+        
+        if (song.difficultyBeatmapSets != null)
         {
-            Characteristics = Song.difficultyBeatmapSets.GroupBy(it => it.beatmapCharacteristicName).ToDictionary(
+            Characteristics = song.difficultyBeatmapSets.GroupBy(it => it.beatmapCharacteristicName).ToDictionary(
                 characteristic => characteristic.Key,
                 characteristic => characteristic.SelectMany(i => i.difficultyBeatmaps).GroupBy(map => map.difficulty).ToDictionary(
                     grouped => grouped.Key,
@@ -151,7 +156,7 @@ public class DifficultySelect : MonoBehaviour
     {
         try
         {
-            return Song.GetMapFromDifficultyBeatmap(diff);
+            return song.GetMapFromDifficultyBeatmap(diff);
         }
         catch (Exception) {};
 
@@ -169,12 +174,11 @@ public class DifficultySelect : MonoBehaviour
         localDiff.Commit();
         row.ShowDirtyObjects(false, true);
 
-        var Song = BeatSaberSongContainer.Instance.song;
         var diff = localDiff.DifficultyBeatmap;
 
-        if (!Song.difficultyBeatmapSets.Contains(currentCharacteristic))
+        if (!song.difficultyBeatmapSets.Contains(currentCharacteristic))
         {
-            Song.difficultyBeatmapSets.Add(currentCharacteristic);
+            song.difficultyBeatmapSets.Add(currentCharacteristic);
         }
         if (!currentCharacteristic.difficultyBeatmaps.Contains(diff))
         {
@@ -188,7 +192,7 @@ public class DifficultySelect : MonoBehaviour
         string oldPath = map?.directoryAndFile;
 
         diff.UpdateName();
-        map.directoryAndFile = Path.Combine(Song.directory, diff.beatmapFilename);
+        map.directoryAndFile = Path.Combine(song.directory, diff.beatmapFilename);
         if (File.Exists(oldPath) && oldPath != map.directoryAndFile && !File.Exists(map.directoryAndFile))
         {
             if (firstSave)
@@ -207,7 +211,7 @@ public class DifficultySelect : MonoBehaviour
 
         diff.RefreshRequirementsAndWarnings(map);
 
-        Song.SaveSong();
+        song.SaveSong();
         characteristicSelect.Recalculate();
 
         Debug.Log("Saved " + row.Name);
@@ -249,8 +253,7 @@ public class DifficultySelect : MonoBehaviour
             selImage.color = new Color(selImage.color.r, selImage.color.g, selImage.color.b, 0.0f);
 
             // Clean the UI, if we're selecting a new item they'll be repopulated
-            // TODO: Remove
-            BeatSaberSongContainer.Instance.difficultyData = null;
+            CurrentlySelectedDifficulty = null;
             njsField.text = "";
             songBeatOffsetField.text = "";
             envRemoval.ClearList();
@@ -292,8 +295,8 @@ public class DifficultySelect : MonoBehaviour
         selImage.color = new Color(selImage.color.r, selImage.color.g, selImage.color.b, 1.0f);
 
         var diff = diffs[row.Name];
-        // TODO: Remove
-        BeatSaberSongContainer.Instance.difficultyData = diff.DifficultyBeatmap;
+
+        CurrentlySelectedDifficulty = diff.DifficultyBeatmap;
 
         njsField.text = diff.NoteJumpMovementSpeed.ToString();
         songBeatOffsetField.text = diff.NoteJumpStartBeatOffset.ToString();
@@ -338,8 +341,8 @@ public class DifficultySelect : MonoBehaviour
             }
 
             // This diff has previously been saved, confirm deletion
-            PersistentUI.Instance.ShowDialogBox("SongEditMenu", "deletediff.dialog",
-            (r) => HandleDeleteDifficulty(row, r), PersistentUI.DialogBoxPresetType.YesNo, new object[] { diffs[row.Name].DifficultyBeatmap.difficulty });
+            persistentUI.ShowDialogBox("SongEditMenu", "deletediff.dialog",
+            (r) => HandleDeleteDifficulty(row, r), PersistentUI.DialogBoxPresetType.YesNo, new [] { diffs[row.Name].DifficultyBeatmap.difficulty });
         }
         else if (val && !diffs.ContainsKey(row.Name)) // Create if does not exist
         {
@@ -402,7 +405,7 @@ public class DifficultySelect : MonoBehaviour
 
         var diff = diffs[row.Name].DifficultyBeatmap;
 
-        string fileToDelete = Song.GetMapFromDifficultyBeatmap(diff)?.directoryAndFile;
+        string fileToDelete = song.GetMapFromDifficultyBeatmap(diff)?.directoryAndFile;
         if (File.Exists(fileToDelete))
         {
             FileOperationAPIWrapper.MoveToRecycleBin(fileToDelete);
@@ -415,11 +418,11 @@ public class DifficultySelect : MonoBehaviour
         currentCharacteristic.difficultyBeatmaps.Remove(diffs[row.Name].DifficultyBeatmap);
         if (currentCharacteristic.difficultyBeatmaps.Count == 0)
         {
-            Song.difficultyBeatmapSets.Remove(currentCharacteristic);
+            song.difficultyBeatmapSets.Remove(currentCharacteristic);
         }
 
         diffs.Remove(row.Name);
-        Song.SaveSong();
+        song.SaveSong();
 
         row.SetInteractable(false);
         row.NameInput.text = "";
@@ -472,7 +475,7 @@ public class DifficultySelect : MonoBehaviour
     {
         DeselectDiff();
 
-        currentCharacteristic = Song?.difficultyBeatmapSets?.Find(it => it.beatmapCharacteristicName.Equals(name, StringComparison.InvariantCultureIgnoreCase));
+        currentCharacteristic = song?.difficultyBeatmapSets?.Find(it => it.beatmapCharacteristicName.Equals(name, StringComparison.InvariantCultureIgnoreCase));
         if (currentCharacteristic == null)
         {
             // Create a new set locally if the song doesn't have one,
@@ -500,7 +503,7 @@ public class DifficultySelect : MonoBehaviour
             if (hasDiff)
             {
                 row.ShowDirtyObjects(diffs[row.Name]);
-                if (firstLoad && Settings.Instance.LastLoadedMap.Equals(Song.directory) && Settings.Instance.LastLoadedDiff.Equals(row.Name))
+                if (firstLoad && settings.LastLoadedMap.Equals(song.directory) && settings.LastLoadedDiff.Equals(row.Name))
                 {
                     selectedMemory[name] = row.Name;
                     OnClick(row);

@@ -33,8 +33,7 @@ public class CreateNewSong : MonoBehaviour
         BeatSaberSong song = new BeatSaberSong(list.WIPLevels, res);
         BeatSaberSong.DifficultyBeatmapSet standardSet = new BeatSaberSong.DifficultyBeatmapSet();
         song.difficultyBeatmapSets.Add(standardSet);
-        BeatSaberSongContainer.Instance.SelectSongForEditing(song);
-
+        
         sceneTransitionManager.LoadScene("02_SongEditMenu").WithDataInjectedEarly(song);
         persistentUI.DisplayMessage("SongSelectMenu", "newmap.message", PersistentUI.DisplayMessageType.BOTTOM);
     }

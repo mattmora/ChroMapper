@@ -17,11 +17,6 @@ using Zenject;
 
 public class SongInfoEditUI : MenuBase
 {
-    public Action TempSongLoadedEvent;
-
-    [SerializeField] private AudioSource previewAudio;
-    private string loadedSong = null;
-
     public class Environment
     {
         public readonly string humanName;
@@ -43,7 +38,7 @@ public class SongInfoEditUI : MenuBase
         new Environment("K/DA", "KDAEnvironment"),
         new Environment("Monstercat", "MonstercatEnvironment"),
         new Environment("Dragons", "DragonsEnvironment"),
-        new Environment("Origins", "OriginsEnvironment"), //i swear to god if beat games reverts this back i am going to lose my shit
+        new Environment("Origins", "OriginsEnvironment"), // i swear to god if beat games reverts this back i am going to lose my shit
         new Environment("Crab Rave", "CrabRaveEnvironment"),
         new Environment("Panic! At The Disco", "PanicEnvironment"),
         new Environment("Rocket League", "RocketEnvironment"),
@@ -85,40 +80,52 @@ public class SongInfoEditUI : MenuBase
 
     public static string GetEnvironmentNameFromID(int id) => VanillaEnvironments[id].jsonName;
 
-    BeatSaberSong Song;
+    public Action TempSongLoadedEvent;
 
-    [SerializeField] DifficultySelect difficultySelect;
-    [SerializeField] TMP_InputField nameField;
-    [SerializeField] TMP_InputField subNameField;
-    [SerializeField] TMP_InputField songAuthorField;
-    [SerializeField] TMP_InputField authorField;
-    [SerializeField] TMP_InputField coverImageField;
+    [SerializeField] private AudioSource previewAudio;
+    [SerializeField] private DifficultySelect difficultySelect;
+    [SerializeField] private TMP_InputField nameField;
+    [SerializeField] private TMP_InputField subNameField;
+    [SerializeField] private TMP_InputField songAuthorField;
+    [SerializeField] private TMP_InputField authorField;
+    [SerializeField] private TMP_InputField coverImageField;
+    [SerializeField] private TMP_InputField bpmField;
+    [SerializeField] private TMP_InputField prevStartField;
+    [SerializeField] private TMP_InputField prevDurField;
+    [SerializeField] private TMP_Dropdown environmentDropdown;
+    [SerializeField] private TMP_Dropdown customPlatformsDropdown;
+    [SerializeField] private TMP_InputField audioPath;
+    [SerializeField] private TMP_InputField offset;
+    [SerializeField] private Image revertInfoButtonImage;
+    [SerializeField] private ContributorsController contributorController;
 
-    [SerializeField] TMP_InputField bpmField;
-    [SerializeField] TMP_InputField prevStartField;
-    [SerializeField] TMP_InputField prevDurField;
-    
-    [SerializeField] TMP_Dropdown environmentDropdown;
-    [SerializeField] TMP_Dropdown customPlatformsDropdown;
+    private Coroutine reloadSongDataCoroutine;
+    private string loadedSong = null;
 
-    [SerializeField] TMP_InputField audioPath;
-    [SerializeField] TMP_InputField offset;
-
-    [SerializeField] Image revertInfoButtonImage;
-
-    [SerializeField] ContributorsController contributorController;
+    private BeatSaberSong song;
+    private Settings settings;
+    private SceneTransitionManager sceneTransitionManager;
+    private PersistentUI persistentUI;
+    private CustomPlatformsLoader customPlatformsLoader;
 
     [Inject]
-    private void Construct(BeatSaberSong song)
+    private void Construct(BeatSaberSong song, Settings settings, SceneTransitionManager sceneTransitionManager, PersistentUI persistentUI, CustomPlatformsLoader customPlatformsLoader)
     {
-        this.Song = song;
+        this.settings = settings;
+        this.song = song;
+        this.sceneTransitionManager = sceneTransitionManager;
+        this.persistentUI = persistentUI;
+        this.customPlatformsLoader = customPlatformsLoader;
+    }
 
+    private void Start()
+    {
         environmentDropdown.ClearOptions();
         environmentDropdown.AddOptions(VanillaEnvironments.Select(it => it.humanName).ToList());
 
         customPlatformsDropdown.ClearOptions();
         customPlatformsDropdown.AddOptions(new List<string> { "None" });
-        customPlatformsDropdown.AddOptions(CustomPlatformsLoader.Instance.GetAllEnvironmentIds());
+        customPlatformsDropdown.AddOptions(customPlatformsLoader.GetAllEnvironmentIds());
 
         LoadFromSong();
     }
@@ -146,51 +153,53 @@ public class SongInfoEditUI : MenuBase
     /// </summary>
     public void SaveToSong()
     {
-        Song.songName = nameField.text;
-        Song.songSubName = subNameField.text;
-        Song.songAuthorName = songAuthorField.text;
-        Song.levelAuthorName = authorField.text;
-        Song.coverImageFilename = coverImageField.text;
-        Song.songFilename = audioPath.text;
+        song.songName = nameField.text;
+        song.songSubName = subNameField.text;
+        song.songAuthorName = songAuthorField.text;
+        song.levelAuthorName = authorField.text;
+        song.coverImageFilename = coverImageField.text;
+        song.songFilename = audioPath.text;
 
-        Song.beatsPerMinute = GetTextValue(bpmField);
-        Song.previewStartTime = GetTextValue(prevStartField);
-        Song.previewDuration = GetTextValue(prevDurField);
-        Song.songTimeOffset = GetTextValue(offset);
+        song.beatsPerMinute = GetTextValue(bpmField);
+        song.previewStartTime = GetTextValue(prevStartField);
+        song.previewDuration = GetTextValue(prevDurField);
+        song.songTimeOffset = GetTextValue(offset);
 
-        if (Song.songTimeOffset > 0)
+        if (song.songTimeOffset > 0)
         {
-            PersistentUI.Instance.ShowDialogBox("SongEditMenu", "songtimeoffset.warning", null,
-                PersistentUI.DialogBoxPresetType.Ok);
+            persistentUI.ShowDialogBox("SongEditMenu", "songtimeoffset.warning", null, PersistentUI.DialogBoxPresetType.Ok);
         }
 
-        Song.environmentName = GetEnvironmentNameFromID(environmentDropdown.value);
+        song.environmentName = GetEnvironmentNameFromID(environmentDropdown.value);
 
-        if (Song.customData == null) Song.customData = new JSONObject();
+        if (song.customData == null) song.customData = new JSONObject();
 
         if (customPlatformsDropdown.value > 0)
         {
-            Song.customData["_customEnvironment"] = customPlatformsDropdown.captionText.text;
-            if (CustomPlatformsLoader.Instance.GetAllEnvironments().TryGetValue(customPlatformsDropdown.captionText.text, out PlatformInfo info))
-                Song.customData["_customEnvironmentHash"] = info.Md5Hash;
+            song.customData["_customEnvironment"] = customPlatformsDropdown.captionText.text;
+
+            if (customPlatformsLoader.GetAllEnvironments().TryGetValue(customPlatformsDropdown.captionText.text, out PlatformInfo info))
+            {
+                song.customData["_customEnvironmentHash"] = info.Md5Hash;
+            }
         }
         else
         {
-            Song.customData.Remove("_customEnvironment");
-            Song.customData.Remove("_customEnvironmentHash");
+            song.customData.Remove("_customEnvironment");
+            song.customData.Remove("_customEnvironmentHash");
         }
 
         contributorController.Commit();
-        Song.contributors = contributorController.contributors;
+        song.contributors = contributorController.contributors;
 
-        Song.SaveSong();
+        song.SaveSong();
 
         // Trigger validation checks, if this is the first save they will not have been done yet
         coverImageField.GetComponent<InputBoxFileValidator>().OnUpdate();
         audioPath.GetComponent<InputBoxFileValidator>().OnUpdate();
         ReloadAudio();
 
-        PersistentUI.Instance.DisplayMessage("SongEditMenu", "saved", PersistentUI.DisplayMessageType.BOTTOM);
+        persistentUI.DisplayMessage("SongEditMenu", "saved", PersistentUI.DisplayMessageType.BOTTOM);
     }
 
     /// <summary>
@@ -198,28 +207,27 @@ public class SongInfoEditUI : MenuBase
     /// </summary>
     public void LoadFromSong()
     {
-        nameField.text = Song.songName;
-        subNameField.text = Song.songSubName;
-        songAuthorField.text = Song.songAuthorName;
-        authorField.text = Song.levelAuthorName;
+        nameField.text = song.songName;
+        subNameField.text = song.songSubName;
+        songAuthorField.text = song.songAuthorName;
+        authorField.text = song.levelAuthorName;
 
         BroadcastMessage("OnValidate"); // god unity why are you so dumb
 
-        coverImageField.text = Song.coverImageFilename;
-        audioPath.text = Song.songFilename;
+        coverImageField.text = song.coverImageFilename;
+        audioPath.text = song.songFilename;
 
-        offset.text = Song.songTimeOffset.ToString();
-        if (Song.songTimeOffset > 0)
+        offset.text = song.songTimeOffset.ToString();
+        if (song.songTimeOffset > 0)
         {
-            PersistentUI.Instance.ShowDialogBox("SongEditMenu", "songtimeoffset.warning", null,
-                PersistentUI.DialogBoxPresetType.Ok);
+            persistentUI.ShowDialogBox("SongEditMenu", "songtimeoffset.warning", null, PersistentUI.DialogBoxPresetType.Ok);
         }
 
-        bpmField.text = Song.beatsPerMinute.ToString();
-        prevStartField.text = Song.previewStartTime.ToString();
-        prevDurField.text = Song.previewDuration.ToString();
+        bpmField.text = song.beatsPerMinute.ToString();
+        prevStartField.text = song.previewStartTime.ToString();
+        prevDurField.text = song.previewDuration.ToString();
 
-        environmentDropdown.value = GetEnvironmentIDFromString(Song.environmentName);
+        environmentDropdown.value = GetEnvironmentIDFromString(song.environmentName);
 
         customPlatformsDropdown.value = CustomPlatformFromSong();
         if (customPlatformsDropdown.value == 0)
@@ -238,13 +246,12 @@ public class SongInfoEditUI : MenuBase
     /// <returns>Custom platform index</returns>
     private int CustomPlatformFromSong()
     {
-        if (Song.customData != null)
+        if (song.customData != null)
         {
-            if (Song.customData["_customEnvironment"] != null && Song.customData["_customEnvironment"] != "")
+            if (!string.IsNullOrEmpty(song.customData["_customEnvironment"]))
             {
-                return CustomPlatformsLoader.Instance.GetAllEnvironmentIds().IndexOf(Song.customData["_customEnvironment"]) + 1;
+                return customPlatformsLoader.GetAllEnvironmentIds().IndexOf(song.customData["_customEnvironment"]) + 1;
             }
-            return 0;
         }
         return 0;
     }
@@ -265,12 +272,12 @@ public class SongInfoEditUI : MenuBase
     /// <returns>Coroutine IEnumerator</returns>
     private IEnumerator LoadAudio(bool useTemp = true)
     {
-        if (Song.directory == null)
+        if (song.directory == null)
         {
             yield break;
         }
 
-        string fullPath = Path.Combine(Song.directory, useTemp ? audioPath.text : Song.songFilename);
+        string fullPath = Path.Combine(song.directory, useTemp ? audioPath.text : song.songFilename);
 
         if (fullPath == loadedSong)
         {
@@ -290,12 +297,11 @@ public class SongInfoEditUI : MenuBase
                 if (clip == null)
                 {
                     Debug.Log("Error getting Audio data!");
-                    SceneTransitionManager.Instance.CancelLoading("load.error.audio");
+                    sceneTransitionManager.CancelLoading("load.error.audio");
                 }
                 loadedSong = fullPath;
                 clip.name = "Song";
                 previewAudio.clip = clip;
-                BeatSaberSongContainer.Instance.loadedSong = clip;
 
                 if (useTemp)
                 {
@@ -305,12 +311,12 @@ public class SongInfoEditUI : MenuBase
             else
             {
                 Debug.Log("Incompatible file type! WTF!?");
-                SceneTransitionManager.Instance.CancelLoading("load.error.audio2");
+                sceneTransitionManager.CancelLoading("load.error.audio2");
             }
         }
         else
         {
-            SceneTransitionManager.Instance.CancelLoading("load.error.audio3");
+            sceneTransitionManager.CancelLoading("load.error.audio3");
             Debug.Log("Song does not exist! WTF!?");
             Debug.Log(fullPath);
         }
@@ -321,8 +327,7 @@ public class SongInfoEditUI : MenuBase
     /// </summary>
     public void DeleteMap()
     {
-        PersistentUI.Instance.ShowDialogBox("SongEditMenu", "delete.dialog", HandleDeleteMap,
-            PersistentUI.DialogBoxPresetType.YesNo, new object[] { Song.songName });
+        persistentUI.ShowDialogBox("SongEditMenu", "delete.dialog", HandleDeleteMap, PersistentUI.DialogBoxPresetType.YesNo, new[] { song.songName });
     }
 
     /// <summary>
@@ -331,16 +336,17 @@ public class SongInfoEditUI : MenuBase
     /// <param name="result">Confirmation from the user</param>
     private void HandleDeleteMap(int result)
     {
-        if (result == 0) //Left button (ID 0) pressed; the user wants to delete the map.
+        // Left button (ID 0) pressed; the user wants to delete the map.
+        if (result == 0) 
         {
-            FileOperationAPIWrapper.MoveToRecycleBin(Song.directory);
+            FileOperationAPIWrapper.MoveToRecycleBin(song.directory);
             ReturnToSongList();
-        } //Middle button (ID 1) would be pressed; the user doesn't want to delete the map, so we do nothing.
+        }
     }
 
     private void AddToZip(ZipArchive archive, string fileLocation)
     {
-        string fullPath = Path.Combine(Song.directory, fileLocation);
+        string fullPath = Path.Combine(song.directory, fileLocation);
         if (File.Exists(fullPath))
         {
             archive.CreateEntryFromFile(fullPath, fileLocation);
@@ -354,40 +360,41 @@ public class SongInfoEditUI : MenuBase
     {
         string infoFileLocation = "";
         string zipPath = "";
-        if (Song.directory != null)
+        if (song.directory != null)
         {
-            zipPath = Path.Combine(Song.directory, Song.cleanSongName + ".zip");
+            zipPath = Path.Combine(song.directory, song.cleanSongName + ".zip");
             // Mac doesn't seem to like overwriting existing zips, so delete the old one first
             File.Delete(zipPath);
 
-            infoFileLocation = Path.Combine(Song.directory, "info.dat");
+            infoFileLocation = Path.Combine(song.directory, "info.dat");
         }
 
         if (!File.Exists(infoFileLocation))
         {
             Debug.LogError(":hyperPepega: :mega: WHY TF ARE YOU TRYING TO PACKAGE A MAP WITH NO INFO.DAT FILE");
-            PersistentUI.Instance.ShowDialogBox("SongEditMenu", "zip.warning", null, PersistentUI.DialogBoxPresetType.Ok);
+            persistentUI.ShowDialogBox("SongEditMenu", "zip.warning", null, PersistentUI.DialogBoxPresetType.Ok);
             return;
         }
 
         using (ZipArchive archive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
-        {
-            archive.CreateEntryFromFile(infoFileLocation, "Info.dat"); //oh yeah lolpants is gonna kill me if it isnt packaged as "Info.dat"
+        { 
+            // oh yeah lolpants is gonna kill me if it isnt packaged as "Info.dat"
+            archive.CreateEntryFromFile(infoFileLocation, "Info.dat");
 
-            AddToZip(archive, Song.coverImageFilename);
-            AddToZip(archive, Song.songFilename);
+            AddToZip(archive, song.coverImageFilename);
+            AddToZip(archive, song.songFilename);
 
-            foreach (var contributor in Song.contributors.DistinctBy(it => it.LocalImageLocation))
+            foreach (var contributor in song.contributors.DistinctBy(it => it.LocalImageLocation))
             {
-                string imageLocation = Path.Combine(Song.directory, contributor.LocalImageLocation);
-                if (contributor.LocalImageLocation != Song.coverImageFilename &&
+                string imageLocation = Path.Combine(song.directory, contributor.LocalImageLocation);
+                if (contributor.LocalImageLocation != song.coverImageFilename &&
                     File.Exists(imageLocation) && !File.GetAttributes(imageLocation).HasFlag(FileAttributes.Directory))
                 {
                     archive.CreateEntryFromFile(imageLocation, contributor.LocalImageLocation);
                 }
             }
 
-            foreach (var set in Song.difficultyBeatmapSets)
+            foreach (var set in song.difficultyBeatmapSets)
             {
                 foreach (var map in set.difficultyBeatmaps)
                 {
@@ -405,21 +412,20 @@ public class SongInfoEditUI : MenuBase
     {
         try
         {
-            string winPath = Song.directory.Replace("/", "\\").Replace("\\\\", "\\");
+            string winPath = song.directory.Replace("/", "\\").Replace("\\\\", "\\");
             Debug.Log($"Opening song directory ({winPath}) with Windows...");
             System.Diagnostics.Process.Start("explorer.exe", $"\"{winPath}\"");
         }catch
         {
-            if (Song.directory == null)
+            if (song.directory == null)
             {
-                PersistentUI.Instance.ShowDialogBox("SongEditMenu", "explorer.warning", null,
-                    PersistentUI.DialogBoxPresetType.Ok);
+                persistentUI.ShowDialogBox("SongEditMenu", "explorer.warning", null, PersistentUI.DialogBoxPresetType.Ok);
                 return;
             }
             Debug.Log("Windows opening failed, attempting Mac...");
             try
             {
-                string macPath = Song.directory.Replace("\\", "/").Replace("//", "/");
+                string macPath = song.directory.Replace("\\", "/").Replace("//", "/");
                 if (!macPath.StartsWith("\"")) macPath = "\"" + macPath;
                 if (!macPath.EndsWith("\"")) macPath = macPath + "\"";
                 System.Diagnostics.Process.Start("open", macPath);
@@ -427,7 +433,7 @@ public class SongInfoEditUI : MenuBase
             catch
             {
                 Debug.Log("What is this, some UNIX bullshit?");
-                PersistentUI.Instance.ShowDialogBox("Unrecognized OS!\n\nIf you happen to know Linux and would like to contribute," +
+                persistentUI.ShowDialogBox("Unrecognized OS!\n\nIf you happen to know Linux and would like to contribute," +
                     " please contact me on Discord: Caeden117#0117", null, PersistentUI.DialogBoxPresetType.Ok);
             }
         }
@@ -436,9 +442,10 @@ public class SongInfoEditUI : MenuBase
     /// <summary>
     /// Return the the song list scene, if the user has unsaved changes ask first
     /// </summary>
-    public void ReturnToSongList() {
+    public void ReturnToSongList()
+    {
         // Do nothing if a dialog is open
-        if (PersistentUI.Instance.DialogBox_IsEnabled) return;
+        if (persistentUI.DialogBox_IsEnabled) return;
 
         CheckForChanges(HandleReturnToSongList);
     }
@@ -451,7 +458,7 @@ public class SongInfoEditUI : MenuBase
     {
         if (r == 0)
         {
-            SceneTransitionManager.Instance.LoadScene("01_SongSelectMenu");
+            sceneTransitionManager.LoadScene("01_SongSelectMenu");
         }
     }
 
@@ -459,31 +466,27 @@ public class SongInfoEditUI : MenuBase
     /// The user wants to edit the map
     /// Check first that some objects are enabled and that there are no unsaved changes
     /// </summary>
-    public void EditMapButtonPressed() {
+    public void EditMapButtonPressed()
+    {
         // If no difficulty is selected or there is a dialog open do nothing
-        if (BeatSaberSongContainer.Instance.difficultyData == null || PersistentUI.Instance.DialogBox_IsEnabled)
+        if (difficultySelect.CurrentlySelectedDifficulty == null || persistentUI.DialogBox_IsEnabled)
         {
             return;
         }
 
-        bool a = Settings.Instance.Load_Notes;
-        bool b = Settings.Instance.Load_Obstacles;
-        bool c = Settings.Instance.Load_Events;
-        bool d = Settings.Instance.Load_Others;
+        bool a = settings.Load_Notes;
+        bool b = settings.Load_Obstacles;
+        bool c = settings.Load_Events;
+        bool d = settings.Load_Others;
 
         if (!(a || b || c || d))
         {
-            PersistentUI.Instance.ShowDialogBox(
-                "SongEditMenu", "load.warning",
-                null, PersistentUI.DialogBoxPresetType.Ok);
+            persistentUI.ShowDialogBox("SongEditMenu", "load.warning", null, PersistentUI.DialogBoxPresetType.Ok);
             return;
         }
         else if (!(a && b && c && d))
         {
-            PersistentUI.Instance.ShowDialogBox(
-                "SongEditMenu", "load.warning2",
-                null, PersistentUI.DialogBoxPresetType.Ok);
-            
+            persistentUI.ShowDialogBox("SongEditMenu", "load.warning2", null, PersistentUI.DialogBoxPresetType.Ok);
         }
 
         CheckForChanges(HandleEditMapButtonPressed);
@@ -497,21 +500,21 @@ public class SongInfoEditUI : MenuBase
     {
         if (r == 0)
         {
-            BeatSaberMap map = Song.GetMapFromDifficultyBeatmap(BeatSaberSongContainer.Instance.difficultyData);
-            PersistentUI.UpdateBackground(Song);
+            var diffData = difficultySelect.CurrentlySelectedDifficulty;
+            var map = song.GetMapFromDifficultyBeatmap(diffData);
+            
+            PersistentUI.UpdateBackground(song);
 
             Debug.Log("Transitioning...");
             if (map != null)
             {
-                Settings.Instance.LastLoadedMap = Song.directory;
-                Settings.Instance.LastLoadedChar = BeatSaberSongContainer.Instance.difficultyData.parentBeatmapSet.beatmapCharacteristicName;
-                Settings.Instance.LastLoadedDiff = BeatSaberSongContainer.Instance.difficultyData.difficulty;
-                BeatSaberSongContainer.Instance.map = map;
+                settings.LastLoadedMap = song.directory;
+                settings.LastLoadedChar = diffData.parentBeatmapSet.beatmapCharacteristicName;
+                settings.LastLoadedDiff = diffData.difficulty;
 
-                // TODO: Extract currently selected difficulty data and inject that into the mapper scene as well
-                SceneTransitionManager.Instance.LoadScene("03_Mapper")
+                sceneTransitionManager.LoadScene("03_Mapper")
                     .WithEarlyLoadRoutines(LoadAudio(false))
-                    .WithDataInjectedEarly(Song, map, previewAudio.clip);
+                    .WithDataInjectedEarly(song, map, previewAudio.clip, diffData);
             }
         }
     }
@@ -526,20 +529,17 @@ public class SongInfoEditUI : MenuBase
     {
         if (IsDirty())
         {
-            PersistentUI.Instance.ShowDialogBox("SongEditMenu", "unsaved.warning", callback,
-            PersistentUI.DialogBoxPresetType.YesNo);
+            persistentUI.ShowDialogBox("SongEditMenu", "unsaved.warning", callback, PersistentUI.DialogBoxPresetType.YesNo);
             return true;
         }
         else if (difficultySelect.IsDirty())
         {
-            PersistentUI.Instance.ShowDialogBox("SongEditMenu", "unsaveddiff.warning", callback,
-            PersistentUI.DialogBoxPresetType.YesNo);
+            persistentUI.ShowDialogBox("SongEditMenu", "unsaveddiff.warning", callback, PersistentUI.DialogBoxPresetType.YesNo);
             return true;
         }
         else if (contributorController.IsDirty())
         {
-            PersistentUI.Instance.ShowDialogBox("SongEditMenu", "unsavedcontributor.warning", callback,
-            PersistentUI.DialogBoxPresetType.YesNo);
+            persistentUI.ShowDialogBox("SongEditMenu", "unsavedcontributor.warning", callback, PersistentUI.DialogBoxPresetType.YesNo);
             return true;
         }
         callback(0);
@@ -553,7 +553,7 @@ public class SongInfoEditUI : MenuBase
     public void EditContributors()
     {
         // Do nothing if a dialog is open
-        if (PersistentUI.Instance.DialogBox_IsEnabled) return;
+        if (persistentUI.DialogBox_IsEnabled) return;
 
         var wrapper = contributorController.transform.parent.gameObject;
         wrapper.SetActive(!wrapper.activeSelf);
@@ -564,18 +564,17 @@ public class SongInfoEditUI : MenuBase
     /// </summary>
     public void UndoChanges()
     {
-        _reloadSongDataCoroutine = StartCoroutine(SpinReloadSongDataButton());
+        reloadSongDataCoroutine = StartCoroutine(SpinReloadSongDataButton());
         LoadFromSong();
     }
 
-    private Coroutine _reloadSongDataCoroutine;
     /// <summary>
     /// Spins the undo button for extra flare
     /// </summary>
     /// <returns>Coroutine IEnumerator</returns>
     private IEnumerator SpinReloadSongDataButton()
     {
-        if (_reloadSongDataCoroutine != null) StopCoroutine(_reloadSongDataCoroutine);
+        if (reloadSongDataCoroutine != null) StopCoroutine(reloadSongDataCoroutine);
 
         float startTime = Time.time;
         var transform1 = revertInfoButtonImage.transform;
@@ -627,17 +626,17 @@ public class SongInfoEditUI : MenuBase
     /// <returns>True if user has made changes, false otherwise</returns>
     private bool IsDirty()
     {
-        return Song.songName != nameField.text ||
-            Song.songSubName != subNameField.text ||
-            Song.songAuthorName != songAuthorField.text ||
-            Song.levelAuthorName != authorField.text ||
-            Song.coverImageFilename != coverImageField.text ||
-            Song.songFilename != audioPath.text ||
-            !NearlyEqual(Song.beatsPerMinute, GetTextValue(bpmField)) ||
-            !NearlyEqual(Song.previewStartTime, GetTextValue(prevStartField)) ||
-            !NearlyEqual(Song.previewDuration, GetTextValue(prevDurField)) ||
-            !NearlyEqual(Song.songTimeOffset, GetTextValue(offset)) ||
-            environmentDropdown.value != GetEnvironmentIDFromString(Song.environmentName) ||
+        return song.songName != nameField.text ||
+            song.songSubName != subNameField.text ||
+            song.songAuthorName != songAuthorField.text ||
+            song.levelAuthorName != authorField.text ||
+            song.coverImageFilename != coverImageField.text ||
+            song.songFilename != audioPath.text ||
+            !NearlyEqual(song.beatsPerMinute, GetTextValue(bpmField)) ||
+            !NearlyEqual(song.previewStartTime, GetTextValue(prevStartField)) ||
+            !NearlyEqual(song.previewDuration, GetTextValue(prevDurField)) ||
+            !NearlyEqual(song.songTimeOffset, GetTextValue(offset)) ||
+            environmentDropdown.value != GetEnvironmentIDFromString(song.environmentName) ||
             customPlatformsDropdown.value != CustomPlatformFromSong();
     }
 

@@ -29,12 +29,14 @@ public class FirstBootMenu : MonoBehaviour
 
     private Settings settings;
     private SceneTransitionManager sceneTransitionManager;
+    private PersistentUI persistentUI;
 
     [Inject]
-    private void Init(Settings settings, SceneTransitionManager sceneTransitionManager)
+    private void Init(Settings settings, SceneTransitionManager sceneTransitionManager, PersistentUI persistentUI)
     {
         this.settings = settings;
         this.sceneTransitionManager = sceneTransitionManager;
+        this.persistentUI = persistentUI;
     }
 
     private void Start()
@@ -120,7 +122,7 @@ public class FirstBootMenu : MonoBehaviour
     {
         var arg = LocalizationSettings.StringDatabase.GetLocalizedStringAsync("FirstBoot", s);
         yield return arg;
-        PersistentUI.Instance.ShowDialogBox("FirstBoot", "validate.dialog",
+        persistentUI.ShowDialogBox("FirstBoot", "validate.dialog",
             continueAfter ? (Action<int>)HandleGenerateMissingFoldersWithContinue : HandleGenerateMissingFolders, PersistentUI.DialogBoxPresetType.YesNo, new object[] { arg.Result });
     }
 

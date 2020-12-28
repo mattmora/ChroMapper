@@ -29,9 +29,9 @@ public class SongListItem : MonoBehaviour
     void ButtonClicked()
     {
         Debug.Log("Edit button for song " + song.songName);
+
         if (song != null)
         {
-            BeatSaberSongContainer.Instance.SelectSongForEditing(song);
             sceneTransitionManager.LoadScene("02_SongEditMenu").WithDataInjectedEarly(song);
         }
     }

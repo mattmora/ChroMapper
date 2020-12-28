@@ -455,8 +455,6 @@ public class BeatSaberSong
 
         try
         {
-            //"excuse me this is not a schema change" ~lolPants
-            //...after saying that beatsaver will stop accepting "info.dat" for uploading in the near future monkaHMMMMMMM
             JSONNode mainNode = GetNodeFromFile(directory + "/Info.dat");
             if (mainNode == null) 
             {
