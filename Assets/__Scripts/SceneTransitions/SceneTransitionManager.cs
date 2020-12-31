@@ -18,8 +18,6 @@ public class SceneTransitionManager : MonoBehaviour
     private static Queue<IEnumerator> externalRoutines = new Queue<IEnumerator>();
     private static Queue<SceneTransitionBuilder> transitions = new Queue<SceneTransitionBuilder>();
 
-    private Coroutine LoadingCoroutine; //For stopping.
-
     [SerializeField] private DarkThemeSO darkThemeSO;
 
     private PersistentUI persistentUI;
@@ -80,15 +78,14 @@ public class SceneTransitionManager : MonoBehaviour
     /// </summary>
     public void ExecuteTransition()
     {
-        LoadingCoroutine = StartCoroutine(SceneTransition());
+        StartCoroutine(SceneTransition());
     }
 
     public void CancelLoading(string message)
     {
-        if (!IsLoading || LoadingCoroutine == null) return;
-        StopCoroutine(LoadingCoroutine);
+        if (!IsLoading) return;
+        StopAllCoroutines();
         IsLoading = false;
-        LoadingCoroutine = null;
         StartCoroutine(CancelLoadingTransitionAndDisplay(message));
     }
 
@@ -114,7 +111,6 @@ public class SceneTransitionManager : MonoBehaviour
         yield return persistentUI.FadeOutLoadingScreen();
 
         IsLoading = false;
-        LoadingCoroutine = null;
     }
 
     private IEnumerator RunExternalRoutines()

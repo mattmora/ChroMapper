@@ -66,7 +66,7 @@ public class PauseManager : MonoBehaviour, CMInput.IPauseMenuActions
         if (save)
         {
             saveController.Save();
-            SceneTransitionManager.Instance.LoadScene("02_SongEditMenu");
+            ReturnToSongEditScreen();
         }
         else
             PersistentUI.Instance.ShowDialogBox("Mapper", "save", SaveAndExitResult, PersistentUI.DialogBoxPresetType.YesNoCancel);
@@ -83,10 +83,9 @@ public class PauseManager : MonoBehaviour, CMInput.IPauseMenuActions
         if (result == 0) //Left button (ID 0) clicked; the user wants to Save before exiting.
         {
             saveController.Save();
-            SceneTransitionManager.Instance.LoadScene("02_SongEditMenu");
+            ReturnToSongEditScreen();
         }
-        else if (result == 1) //Middle button (ID 1) clicked; the user does not want to save before exiting.
-            SceneTransitionManager.Instance.LoadScene("02_SongEditMenu");
+        else if (result == 1) ReturnToSongEditScreen();
         //Right button (ID 2) would be clicked; the user does not want to exit the editor after all, so we aint doing shit.
     }
 
@@ -159,5 +158,12 @@ public class PauseManager : MonoBehaviour, CMInput.IPauseMenuActions
     public void OnPauseEditor(InputAction.CallbackContext context)
     {
         if (context.performed) TogglePause();
+    }
+
+    private void ReturnToSongEditScreen()
+    {
+        // TODO replace with injected variables
+        SceneTransitionManager.Instance.LoadScene("02_SongEditMenu")
+            .WithDataInjectedEarly(BeatSaberSongContainer.Instance.song);
     }
 }

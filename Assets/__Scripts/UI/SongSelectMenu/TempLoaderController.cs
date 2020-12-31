@@ -24,10 +24,7 @@ public class TempLoaderController : MonoBehaviour
 
     public void OpenTempLoader()
     {
-        PersistentUI.Instance.ShowInputBox(
-            "SongSelectMenu", "temploader.dialog",
-            TryOpenTempLoader, "temploader.dialog.default"
-            );
+        persistentUI.ShowInputBox("SongSelectMenu", "temploader.dialog", TryOpenTempLoader, "temploader.dialog.default");
     }
 
     private void TryOpenTempLoader(string location)
