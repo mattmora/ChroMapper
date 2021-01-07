@@ -93,10 +93,18 @@ public class BeatmapNote : BeatmapObject, IBeatmapObjectBounds
 
         return new Vector2(position, layer);
     }
+    public Vector3 GetScale()
+    {
+        if (_customData?.HasKey("_scale") ?? false)
+        {
+            return _customData["_scale"].ReadVector3();
+        }
+        return Vector3.one;
+    }
 
     public Vector2 GetCenter()
     {
-        return GetPosition() + new Vector2(0.5f, 0.5f);
+        return GetPosition() + new Vector2(0f, 0.5f);
     }
 
     protected override bool IsConflictingWithObjectAtSameTime(BeatmapObject other, bool deletion)

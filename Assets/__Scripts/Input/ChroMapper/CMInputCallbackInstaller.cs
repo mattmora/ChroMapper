@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
@@ -238,7 +239,7 @@ public class CMInputCallbackInstaller : MonoBehaviour
     {
         foreach(EventHandler handler in allEventHandlers)
         {
-            handler.DisableEventHandler();
+            handler.DisableEventHandler(true);
         }
         allEventHandlers.Clear();
         disabledEventHandlers.Clear();
@@ -291,6 +292,8 @@ public class CMInputCallbackInstaller : MonoBehaviour
             EventObject = eventObject;
             Handler = handler;
             InterfaceType = interfaceType;
+            
+            EventInfo.AddEventHandler(EventObject, (Action<InputAction.CallbackContext>) ReleaseListenerFunc);
         }
 
         public void EnableEventHandler()
@@ -299,10 +302,20 @@ public class CMInputCallbackInstaller : MonoBehaviour
             IsDisabled = false;
         }
 
-        public void DisableEventHandler()
+        public void DisableEventHandler(bool fully = false)
         {
+            if (fully) EventInfo.RemoveEventHandler(EventObject, (Action<InputAction.CallbackContext>) ReleaseListenerFunc);
+
             EventInfo.RemoveEventHandler(EventObject, Handler);
             IsDisabled = true;
+        }
+
+        private void ReleaseListenerFunc(InputAction.CallbackContext context)
+        {
+            if (IsDisabled && context.canceled)
+            {
+                Handler.DynamicInvoke(context);
+            }
         }
 
         public override int GetHashCode()
