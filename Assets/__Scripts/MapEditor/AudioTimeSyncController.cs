@@ -2,20 +2,11 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using Zenject;
 
 public class AudioTimeSyncController : MonoBehaviour, CMInput.IPlaybackActions, CMInput.ITimelineActions
 {
     public static readonly string PrecisionSnapName = "PrecisionSnap";
-
-    [SerializeField] public AudioSource songAudioSource;
-    [SerializeField] AudioSource waveformSource;
-
-    [SerializeField] GameObject moveables;
-    [SerializeField] TracksManager tracksManager;
-    [SerializeField] Track[] otherTracks;
-    [SerializeField] BPMChangesContainer bpmChangesContainer;
-    [SerializeField] GridRenderingController gridRenderingController;
-    [SerializeField] CustomStandaloneInputModule customStandaloneInputModule;
 
     public int gridMeasureSnapping
     {
@@ -29,19 +20,11 @@ public class AudioTimeSyncController : MonoBehaviour, CMInput.IPlaybackActions, 
         }
     }
 
-    private bool controlSnap = false;
-    private bool preciselyControlSnap = false;
-
-    private AudioClip clip;
-    [HideInInspector] public BeatSaberSong song;
-    private int _gridMeasureSnapping = 1;
-
-    [SerializeField] private float currentBeat;
-    [SerializeField] private float currentSeconds;
-
-    public float CurrentBeat {
+    public float CurrentBeat
+    {
         get => currentBeat;
-        private set {
+        private set
+        {
             currentBeat = value;
             currentSeconds = GetSecondsFromBeat(value);
             ValidatePosition();
@@ -49,9 +32,11 @@ public class AudioTimeSyncController : MonoBehaviour, CMInput.IPlaybackActions, 
         }
     }
 
-    public float CurrentSeconds {
+    public float CurrentSeconds
+    {
         get => currentSeconds;
-        private set {
+        private set
+        {
             currentSeconds = value;
             currentBeat = GetBeatFromSeconds(value);
             ValidatePosition();
@@ -59,26 +44,49 @@ public class AudioTimeSyncController : MonoBehaviour, CMInput.IPlaybackActions, 
         }
     }
 
-    public bool IsPlaying { get; private set; }
-
-    private float offsetMS;
-    public float offsetBeat { get; private set; } = -1;
     public float gridStartPosition { get; private set; } = -1;
 
-    private float songSpeed = 10f;
-    private bool levelLoaded = false;
-    
+    public float offsetBeat { get; private set; } = -1;
+
+    public bool IsPlaying { get; private set; }
+
     public Action OnTimeChanged;
     public Action<bool> OnPlayToggle;
     public Action<int> GridMeasureSnappingChanged;
 
+    [SerializeField] private AudioSource songAudioSource;
+    [SerializeField] private AudioSource waveformSource;
+    [SerializeField] private GameObject moveables;
+    [SerializeField] private TracksManager tracksManager;
+    [SerializeField] private Track[] otherTracks;
+    [SerializeField] private BPMChangesContainer bpmChangesContainer;
+    [SerializeField] private GridRenderingController gridRenderingController;
+    [SerializeField] private CustomStandaloneInputModule customStandaloneInputModule;
+    [SerializeField] private float currentBeat;
+    [SerializeField] private float currentSeconds;
+
+    private bool controlSnap = false;
+    private bool preciselyControlSnap = false;
+    private int _gridMeasureSnapping = 1;
+    private float offsetMS;
+    private float songSpeed = 10f;
+    private bool levelLoaded = false;
+
+    private AudioClip clip;
+    private BeatSaberSong song;
+
+    [Inject]
+    private void Construct(BeatSaberSong song, AudioClip loadedSong)
+    {
+        clip = loadedSong;
+        this.song = song;
+    }
+
     // Use this for initialization
-    void Start() {
+    private void Start()
+    {
         try
         {
-            //Init dat stuff
-            clip = BeatSaberSongContainer.Instance.loadedSong;
-            song = BeatSaberSongContainer.Instance.song;
             offsetMS = song.songTimeOffset / 1000;
             ResetTime();
             offsetBeat = currentBeat;
@@ -87,15 +95,18 @@ public class AudioTimeSyncController : MonoBehaviour, CMInput.IPlaybackActions, 
             songAudioSource.clip = clip;
             waveformSource.clip = clip;
             UpdateMovables();
+
             if (Settings.NonPersistentSettings.ContainsKey(PrecisionSnapName))
             {
                 gridMeasureSnapping = (int)Settings.NonPersistentSettings[PrecisionSnapName];
             }
+
             GridMeasureSnappingChanged?.Invoke(gridMeasureSnapping);
             LoadInitialMap.LevelLoadedEvent += OnLevelLoaded;
             Settings.NotifyBySettingName("SongSpeed", UpdateSongSpeed);
         }
-        catch (Exception e) {
+        catch (Exception e)
+        {
             Debug.LogException(e);
         }
     }
@@ -115,7 +126,8 @@ public class AudioTimeSyncController : MonoBehaviour, CMInput.IPlaybackActions, 
         LoadInitialMap.LevelLoadedEvent -= OnLevelLoaded;
     }
 
-    private void Update() {
+    private void Update()
+    {
         try
         {
             if (!levelLoaded) return;
@@ -142,12 +154,15 @@ public class AudioTimeSyncController : MonoBehaviour, CMInput.IPlaybackActions, 
                 if (!songAudioSource.isPlaying) TogglePlaying();
             }
 
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             Debug.LogException(e);
         }
     }
 
-    private void UpdateMovables() {
+    private void UpdateMovables()
+    {
         float position = currentBeat * EditorScaleController.EditorScale;
         gridStartPosition = offsetBeat * EditorScaleController.EditorScale;
 
@@ -158,11 +173,13 @@ public class AudioTimeSyncController : MonoBehaviour, CMInput.IPlaybackActions, 
         OnTimeChanged?.Invoke();
     }
 
-    private void ResetTime() {
+    private void ResetTime()
+    {
         CurrentSeconds = offsetMS;
     }
 
-    public void TogglePlaying() {
+    public void TogglePlaying()
+    {
         IsPlaying = !IsPlaying;
         if (IsPlaying)
         {
@@ -195,14 +212,16 @@ public class AudioTimeSyncController : MonoBehaviour, CMInput.IPlaybackActions, 
         UpdateMovables();
     }
 
-    public void SnapToGrid(bool positionValidated = false) {
+    public void SnapToGrid(bool positionValidated = false)
+    {
         currentBeat = bpmChangesContainer.FindRoundedBPMTime(currentBeat) + offsetBeat;
         currentSeconds = GetSecondsFromBeat(currentBeat);
         if (!positionValidated) ValidatePosition();
         UpdateMovables();
     }
 
-    public void MoveToTimeInSeconds(float seconds) {
+    public void MoveToTimeInSeconds(float seconds)
+    {
         if (IsPlaying) return;
         CurrentSeconds = seconds;
         songAudioSource.time = CurrentSeconds + offsetMS;
@@ -213,7 +232,8 @@ public class AudioTimeSyncController : MonoBehaviour, CMInput.IPlaybackActions, 
         GridMeasureSnappingChanged?.Invoke(gridMeasureSnapping);
     }
 
-    public void MoveToTimeInBeats(float beats) {
+    public void MoveToTimeInBeats(float beats)
+    {
         if (IsPlaying) return;
         CurrentBeat = beats;
         songAudioSource.time = CurrentSeconds + offsetBeat;
@@ -225,7 +245,8 @@ public class AudioTimeSyncController : MonoBehaviour, CMInput.IPlaybackActions, 
 
     public float GetSecondsFromBeat(float beat) => 60 / song.beatsPerMinute * beat;
 
-    private void ValidatePosition() {
+    private void ValidatePosition()
+    {
         if (currentSeconds < offsetMS) currentSeconds = offsetMS;
         if (currentBeat < offsetBeat) currentBeat = offsetBeat;
         if (currentSeconds > BeatSaberSongContainer.Instance.loadedSong.length)

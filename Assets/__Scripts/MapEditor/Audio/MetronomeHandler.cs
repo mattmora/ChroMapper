@@ -1,10 +1,12 @@
 ﻿using System;
 using UnityEngine;
 using UnityEngine.UI;
+using Zenject;
 
 public class MetronomeHandler : MonoBehaviour
 {
     [SerializeField] private AudioTimeSyncController atsc;
+    [SerializeField] private AudioSource songAudioSource;
     [SerializeField] private AudioClip metronomeSound;
     [SerializeField] private AudioClip moreCowbellSound;
     [SerializeField] private AudioClip cowbellSound;
@@ -21,12 +23,20 @@ public class MetronomeHandler : MonoBehaviour
 
     private float songSpeed = 1;
 
+    private BeatSaberSong song;
+
+    [Inject]
+    private void Construct(BeatSaberSong song)
+    {
+        this.song = song;
+    }
+
     private void Start()
     {
         metronomeUIAnimator = metronomeUI.GetComponent<Animator>();
         Settings.NotifyBySettingName("SongSpeed", UpdateSongSpeed);
 
-        lastBPM = atsc.song.beatsPerMinute;
+        lastBPM = song.beatsPerMinute;
         atsc.OnPlayToggle += OnPlayToggle;
     }
 
@@ -62,7 +72,7 @@ public class MetronomeHandler : MonoBehaviour
             if (lastBPMChange != toCheck)
             {
                 lastBPMChange = toCheck;
-                lastBPM = lastBPMChange?._BPM ?? atsc.song.beatsPerMinute;
+                lastBPM = lastBPMChange?._BPM ?? song.beatsPerMinute;
                 audioUtil.PlayOneShotSound(CowBell ? cowbellSound : metronomeSound, Settings.Instance.MetronomeVolume);
                 RunAnimation();
                 beatProgress = 0;
@@ -86,7 +96,7 @@ public class MetronomeHandler : MonoBehaviour
             return;
 
         metronomeUIAnimator.StopPlayback();
-        metronomeUIAnimator.SetFloat(Bpm, Mathf.Abs(lastBPM * atsc.songAudioSource.pitch));
+        metronomeUIAnimator.SetFloat(Bpm, Mathf.Abs(lastBPM * songAudioSource.pitch));
         metronomeUIAnimator.Play(metronomeUIDirection ? "Metronome_R2L" : "Metronome_L2R");
         metronomeUIDirection = !metronomeUIDirection;
     }
@@ -99,11 +109,11 @@ public class MetronomeHandler : MonoBehaviour
             RunAnimation();
             var collection = BeatmapObjectContainerCollection.GetCollectionForType<BPMChangesContainer>(BeatmapObject.Type.BPM_CHANGE);
             lastBPMChange = collection.FindLastBPM(atsc.CurrentBeat);
-            lastBPM = lastBPMChange?._BPM ?? atsc.song.beatsPerMinute;
+            lastBPM = lastBPMChange?._BPM ?? song.beatsPerMinute;
             if (lastBPMChange != null)
             {
                 float differenceInSongBPM = atsc.CurrentBeat - lastBPMChange._time;
-                float differenceInLastBPM = differenceInSongBPM * atsc.song.beatsPerMinute / lastBPMChange._BPM;
+                float differenceInLastBPM = differenceInSongBPM * song.beatsPerMinute / lastBPMChange._BPM;
                 beatProgress = (float)(differenceInLastBPM - Math.Truncate(differenceInLastBPM));
             }
             else

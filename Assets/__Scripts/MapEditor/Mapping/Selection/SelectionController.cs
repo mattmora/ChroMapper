@@ -4,6 +4,7 @@ using System.Linq;
 using System;
 using UnityEngine.InputSystem;
 using SimpleJSON;
+using Zenject;
 
 /// <summary>
 /// Big boi master class for everything Selection.
@@ -34,8 +35,16 @@ public class SelectionController : MonoBehaviour, CMInput.ISelectingActions, CMI
 
     [SerializeField] private CreateEventTypeLabels labels;
 
+    private BeatSaberSong song;
+
     private bool shiftInTime = false;
     private bool shiftInPlace = false;
+
+    [Inject]
+    private void Construct(BeatSaberSong song)
+    {
+        this.song = song;
+    }
 
     // Use this for initialization
     void Start()
@@ -279,7 +288,7 @@ public class SelectionController : MonoBehaviour, CMInput.ISelectingActions, CMI
         if (cut) Delete();
         var bpmChanges = BeatmapObjectContainerCollection.GetCollectionForType<BPMChangesContainer>(BeatmapObject.Type.BPM_CHANGE);
         BeatmapBPMChange lastBPMChange = bpmChanges.FindLastBPM(atsc.CurrentBeat, true);
-        copiedBPM = lastBPMChange?._BPM ?? atsc.song.beatsPerMinute;
+        copiedBPM = lastBPMChange?._BPM ?? song.beatsPerMinute;
     }
 
     /// <summary>

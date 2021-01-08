@@ -3,31 +3,32 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class DingOnNotePassingGrid : MonoBehaviour {
-
-    [SerializeField] private AudioTimeSyncController atsc;
-    [SerializeField] AudioSource source;
-    [SerializeField] SoundList[] soundLists;
-    [SerializeField] int DensityCheckOffset = 2;
-    [SerializeField] float ThresholdInNoteTime = 0.25f;
-    [SerializeField] AudioUtil audioUtil;
-    [SerializeField] NotesContainer container;
-    [SerializeField] BeatmapObjectCallbackController defaultCallbackController;
-    [SerializeField] BeatmapObjectCallbackController beatSaberCutCallbackController;
-    [SerializeField] BongoCat bongocat;
-    [SerializeField] private GameObject discordPingPrefab;
-
-    //debug
-    [SerializeField] float difference;
-
-    private float offset;
-
+public class DingOnNotePassingGrid : MonoBehaviour
+{
     public static Dictionary<int, bool> NoteTypeToDing = new Dictionary<int, bool>()
     {
         { BeatmapNote.NOTE_TYPE_A, true },
         { BeatmapNote.NOTE_TYPE_B, true },
         { BeatmapNote.NOTE_TYPE_BOMB, false },
     };
+
+    [SerializeField] private AudioTimeSyncController atsc;
+    [SerializeField] private AudioSource songAudioSource;
+    [SerializeField] private AudioSource source;
+    [SerializeField] private SoundList[] soundLists;
+    [SerializeField] private int DensityCheckOffset = 2;
+    [SerializeField] private float ThresholdInNoteTime = 0.25f;
+    [SerializeField] private AudioUtil audioUtil;
+    [SerializeField] private NotesContainer container;
+    [SerializeField] private BeatmapObjectCallbackController defaultCallbackController;
+    [SerializeField] private BeatmapObjectCallbackController beatSaberCutCallbackController;
+    [SerializeField] private BongoCat bongocat;
+    [SerializeField] private GameObject discordPingPrefab;
+
+    //debug
+    [SerializeField] float difference;
+
+    private float offset;
 
     private float lastCheckedTime;
     private float songSpeed = 1;
@@ -165,7 +166,7 @@ public class DingOnNotePassingGrid : MonoBehaviour {
             }
         }
 
-        var timeUntilDing = objectData._time - atsc.GetBeatFromSeconds(atsc.songAudioSource.time);
+        var timeUntilDing = objectData._time - atsc.GetBeatFromSeconds(songAudioSource.time);
         var hitTime = (atsc.GetSecondsFromBeat(timeUntilDing) / songSpeed) - offset;
         audioUtil.PlayOneShotSound(list.GetRandomClip(shortCut), Settings.Instance.NoteHitVolume, 1, hitTime);
     }
