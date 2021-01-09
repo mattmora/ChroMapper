@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine.SceneManagement;
 using Zenject;
 
@@ -25,6 +26,7 @@ public class SceneTransitionBuilder
     private readonly List<object> lateLoadData = new List<object>();
 
     private SceneTransitionManager manager;
+    private DiContainer loadedContainer;
 
     public SceneTransitionBuilder(string sceneName, SceneTransitionManager manager)
     {
@@ -32,6 +34,7 @@ public class SceneTransitionBuilder
         this.manager = manager;
     }
 
+    #region Builder Methods
     /// <summary>
     /// Unload all open scenes, and loads this one.
     /// </summary>
@@ -103,6 +106,7 @@ public class SceneTransitionBuilder
         lateLoadData.AddRange(data);
         return this;
     }
+    #endregion
 
     /// <summary>
     /// Executes the transition. Any configurable settings for this builder are locked, and can no longer be modified.
@@ -112,6 +116,9 @@ public class SceneTransitionBuilder
     {
         HasTransitioned = true;
 
+        // TODO: Move this somewhere more sensible, if that's even possible.
+        CMInputCallbackInstaller.InputInstance.Disable();
+
         foreach (IEnumerator routine in earlyLoadRoutines) yield return manager.StartCoroutine(routine);
 
         yield return sceneLoader.LoadSceneAsync(SceneName,
@@ -119,6 +126,14 @@ public class SceneTransitionBuilder
             container => BindDataAndCallAction(container, EarlyBindingAction, earlyLoadData),
             LoadSceneRelationship,
             container => BindDataAndCallAction(container, LateBindingAction, lateLoadData));
+
+
+        var additionalRoutines = loadedContainer.TryResolve<List<IAddLoadRoutine>>().SelectMany(x => x.AdditionalLoadRoutines);
+
+        if (additionalRoutines != null)
+        {
+            lateLoadRoutines.AddRange(additionalRoutines);
+        }
 
         foreach (IEnumerator routine in lateLoadRoutines) yield return manager.StartCoroutine(routine);
     }
@@ -130,6 +145,8 @@ public class SceneTransitionBuilder
             UnityEngine.Debug.Log($"Binding {obj.GetType().Name}");
             container.Bind(obj.GetType()).FromInstance(obj);
         }
+
+        loadedContainer = container;
         action?.Invoke(container);
     }
 }

@@ -194,7 +194,6 @@ public class BoxSelectionPlacementController : PlacementController<MapEvent, Bea
         else
         {
             StartCoroutine(WaitABitFuckOffOtherPlacementControllers());
-            SelectionController.RefreshSelectionMaterial(selected.Any());
             SelectionController.SelectionChangedEvent?.Invoke();
             OnPhysicsRaycast(previousHit, transformed);
         }

@@ -2,6 +2,7 @@
 using UnityEngine;
 using TMPro;
 using UnityEngine.InputSystem;
+using Zenject;
 
 public class RefreshMapController : MonoBehaviour, CMInput.IRefreshMapActions
 {
@@ -16,11 +17,12 @@ public class RefreshMapController : MonoBehaviour, CMInput.IRefreshMapActions
     BeatSaberSong.DifficultyBeatmap diff;
     BeatSaberMap map;
 
-    private void Start()
+    [Inject]
+    private void Construct(BeatSaberSong song, BeatSaberSong.DifficultyBeatmap diff, BeatSaberMap map)
     {
-        song = BeatSaberSongContainer.Instance.song;
-        diff = BeatSaberSongContainer.Instance.difficultyData;
-        map = BeatSaberSongContainer.Instance.map;
+        this.song = song;
+        this.diff = diff;
+        this.map = map;
     }
 
     public void InitiateRefreshConversation()

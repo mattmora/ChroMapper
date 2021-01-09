@@ -5,30 +5,33 @@ using Zenject;
 
 public class MetronomeHandler : MonoBehaviour
 {
-    [SerializeField] private AudioTimeSyncController atsc;
+    public bool CowBell;
+
     [SerializeField] private AudioSource songAudioSource;
     [SerializeField] private AudioClip metronomeSound;
     [SerializeField] private AudioClip moreCowbellSound;
     [SerializeField] private AudioClip cowbellSound;
     [SerializeField] private AudioUtil audioUtil;
     [SerializeField] private GameObject metronomeUI;
+
     private float lastBPM = 100;
     private float beatProgress = 0;
     private BeatmapBPMChange lastBPMChange = null;
     private Animator metronomeUIAnimator;
     private static readonly int Bpm = Animator.StringToHash("BPM");
     private bool metronomeUIDirection = true;
-    public bool CowBell;
     private bool CowBellPlayed;
 
     private float songSpeed = 1;
 
     private BeatSaberSong song;
+    private AudioTimeSyncController atsc;
 
     [Inject]
-    private void Construct(BeatSaberSong song)
+    private void Construct(BeatSaberSong song, AudioTimeSyncController atsc)
     {
         this.song = song;
+        this.atsc = atsc;
     }
 
     private void Start()

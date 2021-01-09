@@ -15,7 +15,6 @@ public class SceneTransitionManager : MonoBehaviour
     // TODO Remove when all is moved to zenject
     public static SceneTransitionManager Instance { get; private set; }
 
-    private static Queue<IEnumerator> externalRoutines = new Queue<IEnumerator>();
     private static Queue<SceneTransitionBuilder> transitions = new Queue<SceneTransitionBuilder>();
 
     [SerializeField] private DarkThemeSO darkThemeSO;
@@ -89,20 +88,11 @@ public class SceneTransitionManager : MonoBehaviour
         StartCoroutine(CancelLoadingTransitionAndDisplay(message));
     }
 
-    public void AddLoadRoutine(IEnumerator routine)
-    {
-        if (IsLoading) externalRoutines.Enqueue(routine);
-    }
-
     private IEnumerator SceneTransition()
     {
         yield return persistentUI.FadeInLoadingScreen();
-        yield return StartCoroutine(RunExternalRoutines());
 
         while (transitions.Count > 0) yield return StartCoroutine(transitions.Dequeue().Transition(sceneLoader));
-
-        // We need to do this a second time in case any classes registered a routine to run on scene start.
-        yield return StartCoroutine(RunExternalRoutines());
 
         darkThemeSO.DarkThemeifyUI();
         persistentUI.LevelLoadSlider.gameObject.SetActive(false);
@@ -113,11 +103,6 @@ public class SceneTransitionManager : MonoBehaviour
         IsLoading = false;
     }
 
-    private IEnumerator RunExternalRoutines()
-    {
-        // This block runs the routines one by one, which isn't ideal
-        while (externalRoutines.Count > 0) yield return StartCoroutine(externalRoutines.Dequeue());
-    }
 
     private IEnumerator CancelLoadingTransitionAndDisplay(string key)
     {

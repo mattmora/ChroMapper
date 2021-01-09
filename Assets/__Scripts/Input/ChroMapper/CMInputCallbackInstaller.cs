@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
@@ -161,16 +160,6 @@ public class CMInputCallbackInstaller : MonoBehaviour
     {
         yield return new WaitUntil(() => !SceneTransitionManager.IsLoading);
         input.Enable();
-        SceneTransitionManager.Instance?.AddLoadRoutine(DisableInputs());
-    }
-
-    // Automatically disables our Input Map when we change scenes. This is to prevent MissingReferenceExceptions.
-    private IEnumerator DisableInputs()
-    {
-        if (!TestMode)
-            yield return new WaitForEndOfFrame();
-
-        input.Disable();
     }
 
     // Set all callbacks to null, then disable our input when we try to exit the application. Prevents more MissingReferenceExceptions.

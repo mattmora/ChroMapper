@@ -25,7 +25,6 @@ public class SelectionController : MonoBehaviour, CMInput.ISelectingActions, CMI
 
     private static SelectionController instance;
 
-    [SerializeField] private AudioTimeSyncController atsc;
     [SerializeField] private Material selectionMaterial;
     [SerializeField] private Transform moveableGridTransform;
     [SerializeField] private Color selectedColor;
@@ -36,14 +35,16 @@ public class SelectionController : MonoBehaviour, CMInput.ISelectingActions, CMI
     [SerializeField] private CreateEventTypeLabels labels;
 
     private BeatSaberSong song;
+    private AudioTimeSyncController atsc;
 
     private bool shiftInTime = false;
     private bool shiftInPlace = false;
 
     [Inject]
-    private void Construct(BeatSaberSong song)
+    private void Construct(BeatSaberSong song, AudioTimeSyncController atsc)
     {
         this.song = song;
+        this.atsc = atsc;
     }
 
     // Use this for initialization
@@ -132,7 +133,7 @@ public class SelectionController : MonoBehaviour, CMInput.ISelectingActions, CMI
             BeatmapObjectContainerCollection collection = BeatmapObjectContainerCollection.GetCollectionForType(type);
             if (collection == null) continue;
 
-            foreach (BeatmapObject toCheck in collection.LoadedObjects.Where(x => x._time > start - epsilon && x._time < end + epsilon))
+            foreach (BeatmapObject toCheck in collection.UnsortedObjects.Where(x => x._time > start - epsilon && x._time < end + epsilon))
             {
                 if (!hasEvent && toCheck is MapEvent mapEvent && !mapEvent.IsRotationEvent) //Includes only rotation events when neither of the two objects are events
                     continue;

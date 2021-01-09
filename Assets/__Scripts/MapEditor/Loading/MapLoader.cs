@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using Zenject;
 
 public class MapLoader : MonoBehaviour
 {
@@ -11,19 +12,29 @@ public class MapLoader : MonoBehaviour
     [Space]
     [SerializeField] Transform containerCollectionsContainer;
 
-    private BeatSaberMap map;
     private int noteLaneSize = 2;
     private int noteLayerSize = 3;
 
+    private BeatSaberMap map;
+    private Settings settings;
+    private PersistentUI persistentUI;
+
+    [Inject]
+    private void Construct(BeatSaberMap map, Settings settings, PersistentUI persistentUI)
+    {
+        this.map = map;
+        this.settings = settings;
+        this.persistentUI = persistentUI;
+    }
+
+    private void Start()
+    {
+        StartCoroutine(HardRefresh());
+    }
+
     public void UpdateMapData(BeatSaberMap map)
     {
-        BeatSaberMap copy = new BeatSaberMap();
-        copy._notes = new List<BeatmapNote>(map._notes);
-        copy._obstacles = new List<BeatmapObstacle>(map._obstacles);
-        copy._events = new List<MapEvent>(map._events);
-        copy._BPMChanges = new List<BeatmapBPMChange>(map._BPMChanges);
-        copy._customEvents = new List<BeatmapCustomEvent>(map._customEvents);
-        this.map = copy;
+        this.map = map;
     }
 
     public IEnumerator HardRefresh()

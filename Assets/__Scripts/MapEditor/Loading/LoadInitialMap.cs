@@ -1,11 +1,11 @@
-﻿using CustomFloorPlugin;
-using System;
+﻿using System;
 using System.Collections;
-using System.IO;
-using UnityEditor;
+using System.Collections.Generic;
 using UnityEngine;
+using Zenject;
 
-public class LoadInitialMap : MonoBehaviour {
+public class LoadInitialMap : MonoBehaviour, IAddLoadRoutine
+{
 
     [SerializeField] AudioTimeSyncController atsc;
     [SerializeField] RotationCallbackController rotationController;
@@ -23,12 +23,15 @@ public class LoadInitialMap : MonoBehaviour {
 
     private BeatSaberSong song;
     private BeatSaberSong.DifficultyBeatmap diff;
-    private int totalObjectsToLoad = 0;
-    private int totalObjectsLoaded = 0;
 
-    void Awake()
+    // This is retrieved via Zenject and done in the background, before the loading screen fades out.
+    public IEnumerable<IEnumerator> AdditionalLoadRoutines => new[] { LoadMap() };
+
+    [Inject]
+    private void Construct(BeatSaberSong song, BeatSaberSong.DifficultyBeatmap diff)
     {
-        SceneTransitionManager.Instance.AddLoadRoutine(LoadMap());
+        this.song = song;
+        this.diff = diff;
     }
 
     public IEnumerator LoadMap()
