@@ -58,7 +58,7 @@ public class EventAppearanceSO : ScriptableObject
             e.UsePyramidModel = false;
             if (e.eventData.IsRingEvent)
             {
-                e.ChangeColor(RingEventsColor);
+                e.SetColor(RingEventsColor);
                 e.ChangeBaseColor(RingEventsColor);
             }
             else if (e.eventData._type == MapEvent.EVENT_TYPE_BOOST_LIGHTS)
@@ -66,12 +66,12 @@ public class EventAppearanceSO : ScriptableObject
                 if (e.eventData._value == 1)
                 {
                     e.ChangeBaseColor(RedBoostColor);
-                    e.ChangeColor(BlueBoostColor);
+                    e.SetColor(BlueBoostColor);
                 }
                 else
                 {
                     e.ChangeBaseColor(RedColor);
-                    e.ChangeColor(BlueColor);
+                    e.SetColor(BlueColor);
                 }
                 e.UpdateOffset(Vector3.forward * 1.05f);
                 e.ChangeFadeSize(cubeBoostEventFadeSize);
@@ -79,7 +79,7 @@ public class EventAppearanceSO : ScriptableObject
             }
             else
             {
-                e.ChangeColor(OtherColor);
+                e.SetColor(OtherColor);
                 e.ChangeBaseColor(OtherColor);
             }
             e.UpdateOffset(Vector3.zero);
@@ -108,13 +108,13 @@ public class EventAppearanceSO : ScriptableObject
                 color = e.eventData._customData["_color"];
             }
         }
-        e.ChangeColor(color);
+        e.SetColor(color);
         e.ChangeBaseColor(Color.black);
         e.UsePyramidModel = Settings.Instance.PyramidEventModels;
         switch (e.eventData._value)
         {
             case MapEvent.LIGHT_VALUE_OFF:
-                e.ChangeColor(OffColor);
+                e.SetColor(OffColor);
                 e.ChangeBaseColor(OffColor);
                 e.UpdateOffset(Vector3.zero);
                 break;

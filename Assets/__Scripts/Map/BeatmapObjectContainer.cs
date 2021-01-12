@@ -10,8 +10,11 @@ public abstract class BeatmapObjectContainer : MonoBehaviour
     private static readonly int Outline = Shader.PropertyToID("_Outline");
     private static readonly int OutlineColor = Shader.PropertyToID("_OutlineColor");
 
-    public bool OutlineVisible { get => SelectionMaterials.FirstOrDefault()?.GetFloat(Outline) != 0;
-        set {
+    public bool OutlineVisible
+    { 
+        get => SelectionMaterials.FirstOrDefault()?.GetFloat(Outline) != 0;
+        set
+        {
             foreach (Material SelectionMaterial in SelectionMaterials)
             {
                 if (!SelectionMaterial.HasProperty(OutlineColor)) return;
@@ -29,8 +32,6 @@ public abstract class BeatmapObjectContainer : MonoBehaviour
 
     public abstract void UpdateGridPosition();
 
-    protected int chunkID;
-    public int ChunkID { get => chunkID; }
     public List<Material> ModelMaterials = new List<Material>() { };
     public List<Material> SelectionMaterials = new List<Material>() { };
 
@@ -50,6 +51,22 @@ public abstract class BeatmapObjectContainer : MonoBehaviour
         }
     }
 
+    public void SetOutlineColor(Color color, bool automaticallyShowOutline = true)
+    {
+        if (automaticallyShowOutline) OutlineVisible = true;
+        foreach (Material SelectionMaterial in SelectionMaterials)
+        {
+            SelectionMaterial.SetColor(OutlineColor, color);
+        }
+    }
+
+    public virtual void AssignTrack(Track track)
+    {
+        AssignedTrack = track;
+    }
+
+    public virtual void SetColor(Color? color) { }
+
     internal virtual void SafeSetActive(bool active)
     {
         if (active != gameObject.activeSelf)
@@ -63,21 +80,5 @@ public abstract class BeatmapObjectContainer : MonoBehaviour
     {
         if (boxCollider == null) return;
         if (con != boxCollider.isTrigger) boxCollider.isTrigger = con;
-    }
-
-    public void SetOutlineColor(Color color, bool automaticallyShowOutline = true)
-    {
-        if (automaticallyShowOutline) OutlineVisible = true;
-        foreach (Material SelectionMaterial in SelectionMaterials)
-        {
-            SelectionMaterial.SetColor(OutlineColor, color);
-        }
-    }
-
-    public virtual void AssignTrack(Track track)
-    {
-        AssignedTrack = track;
-        chunkID = (int)Math.Round(objectData._time / (double)BeatmapObjectContainerCollection.ChunkSize,
-                 MidpointRounding.AwayFromZero);
     }
 }

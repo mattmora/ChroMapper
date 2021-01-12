@@ -380,6 +380,8 @@ public abstract class BeatmapObjectContainerCollection : MonoBehaviour
     /// <returns>A list of sorted objects</returns>
     public virtual IEnumerable<BeatmapObject> GrabSortedObjects() => LoadedObjects;
 
+    public virtual void RefreshContainerColors() { }
+
     protected virtual void UpdateContainerData(BeatmapObjectContainer con, BeatmapObject obj) { }
 
     protected virtual void OnObjectDelete(BeatmapObject obj) { }

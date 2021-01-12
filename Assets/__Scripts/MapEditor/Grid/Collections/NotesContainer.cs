@@ -81,6 +81,14 @@ public class NotesContainer : BeatmapObjectContainerCollection {
         noteAppearanceSO.UpdateColor(red, blue);
     }
 
+    public override void RefreshContainerColors()
+    {
+        foreach (var containerKVP in LoadedContainers)
+        {
+            noteAppearanceSO.SetNoteAppearance(containerKVP.Value as BeatmapNoteContainer);
+        }
+    }
+
     public void UpdateSwingArcVisualizer()
     {
         ShowArcVisualizer = !ShowArcVisualizer;

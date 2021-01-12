@@ -1,15 +1,15 @@
 ﻿using System;
 using UnityEngine;
 
-public class BeatmapObstacleContainer : BeatmapObjectContainer {
+public class BeatmapObstacleContainer : BeatmapObjectContainer
+{
+    private static readonly int ColorTint = Shader.PropertyToID("_ColorTint");
 
     public override BeatmapObject objectData { get => obstacleData; set => obstacleData = (BeatmapObstacle)value; }
 
     [SerializeField] private TracksManager manager;
 
     public BeatmapObstacle obstacleData;
-
-    public int ChunkEnd { get; private set; }
 
     public bool IsRotatedByNoodleExtensions => obstacleData._customData != null && (obstacleData._customData?.HasKey("_rotation") ?? false);
 
@@ -97,8 +97,15 @@ public class BeatmapObstacleContainer : BeatmapObjectContainer {
             transform.RotateAround(rectWorldPos, transform.up, localRotation.y);
             transform.RotateAround(rectWorldPos, transform.forward, localRotation.z);
         }
+    }
 
-        ChunkEnd = (int)Math.Round((objectData._time + obstacleData._duration) / (double)BeatmapObjectContainerCollection.ChunkSize,
-                 MidpointRounding.AwayFromZero);
+    public override void SetColor(Color? color)
+    {
+        if (color is null)
+        {
+            Debug.LogError("Attempted to set a null color for a wall.");
+        }
+
+        ModelMaterials.ForEach(m => m.SetColor(ColorTint, color ?? Color.red));
     }
 }

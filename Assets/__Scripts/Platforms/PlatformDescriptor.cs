@@ -37,7 +37,12 @@ public class PlatformDescriptor : MonoBehaviour {
     private Dictionary<LightsManager, Color> ChromaCustomColors = new Dictionary<LightsManager, Color>();
     private Dictionary<LightsManager, Gradient> ChromaGradients = new Dictionary<LightsManager, Gradient>();
 
-    void Start()
+    private void Awake()
+    {
+        colors = defaultColors.Clone();
+    }
+
+    private void Start()
     {
         if (SceneManager.GetActiveScene().name != "999_PrefabBuilding")
         {

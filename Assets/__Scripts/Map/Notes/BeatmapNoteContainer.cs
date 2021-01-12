@@ -80,17 +80,9 @@ public class BeatmapNoteContainer : BeatmapObjectContainer {
         return directionEuler;
     }
 
-    public void SetModelMaterial(Material m) {
-        noteRenderer.ForEach(it => it.sharedMaterial = m);
-    }
+    public void SetDotVisible(bool b) => dotRenderer.enabled = b;
 
-    public void SetDotVisible(bool b) {
-        dotRenderer.enabled = b;
-    }
-
-    public void SetArrowVisible(bool b) {
-        arrowRenderer.enabled = b;
-    }
+    public void SetArrowVisible(bool b) => arrowRenderer.enabled = b;
 
     public void SetBomb(bool b)
     {
@@ -103,14 +95,16 @@ public class BeatmapNoteContainer : BeatmapObjectContainer {
         if (swingArcRenderer != null) swingArcRenderer.enabled = ShowArcVisualizer;
     }
 
-    public static BeatmapNoteContainer SpawnBeatmapNote(BeatmapNote noteData, ref GameObject notePrefab) {
+    public static BeatmapNoteContainer SpawnBeatmapNote(BeatmapNote noteData, ref GameObject notePrefab)
+    {
         BeatmapNoteContainer container = Instantiate(notePrefab).GetComponent<BeatmapNoteContainer>();
         container.mapNoteData = noteData;
         container.transform.localEulerAngles = Directionalize(noteData);
         return container;
     }
 
-    public override void UpdateGridPosition() {
+    public override void UpdateGridPosition()
+    {
         transform.localPosition = (Vector3)mapNoteData.GetPosition() +
             new Vector3(0, 0.5f, mapNoteData._time * EditorScaleController.EditorScale);
         transform.localScale = mapNoteData.GetScale() + new Vector3(0.5f, 0.5f, 0.5f);
@@ -137,7 +131,7 @@ public class BeatmapNoteContainer : BeatmapObjectContainer {
         }
     }
 
-    public void SetColor(Color? color)
+    public override void SetColor(Color? color)
     {
         noteRenderer.ForEach(it => it.material.SetColor("_Color", color ?? bombColor));
         bombRenderer.material.SetColor("_Color", color ?? bombColor);

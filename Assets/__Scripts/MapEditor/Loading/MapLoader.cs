@@ -39,35 +39,47 @@ public class MapLoader : MonoBehaviour
 
     public IEnumerator HardRefresh()
     {
-        if (Settings.Instance.Load_Notes) yield return StartCoroutine(LoadObjects(map._notes));
-        if (Settings.Instance.Load_Obstacles) yield return StartCoroutine(LoadObjects(map._obstacles));
-        if (Settings.Instance.Load_Events) yield return StartCoroutine(LoadObjects(map._events));
-        if (Settings.Instance.Load_Others)
+        if (settings.Load_Notes) yield return StartCoroutine(LoadObjects(map._notes));
+        if (settings.Load_Obstacles) yield return StartCoroutine(LoadObjects(map._obstacles));
+        if (settings.Load_Events) yield return StartCoroutine(LoadObjects(map._events));
+        if (settings.Load_Others)
         {
             yield return StartCoroutine(LoadObjects(map._BPMChanges));
             yield return StartCoroutine(LoadObjects(map._customEvents));
         }
-        PersistentUI.Instance.LevelLoadSliderLabel.text = "Finishing up...";
+
+        persistentUI.LevelLoadSliderLabel.text = "Finishing up...";
+        
         manager.RefreshTracks();
+        
         SelectionController.RefreshMap();
-        PersistentUI.Instance.LevelLoadSlider.gameObject.SetActive(false);
+        
+        persistentUI.LevelLoadSlider.gameObject.SetActive(false);
     }
 
     public IEnumerator LoadObjects<T>(IEnumerable<T> objects) where T : BeatmapObject
     {
         if (!objects.Any()) yield break;
-        BeatmapObjectContainerCollection collection = BeatmapObjectContainerCollection.GetCollectionForType(objects.First().beatmapType);
+
+        var collection = BeatmapObjectContainerCollection.GetCollectionForType(objects.First().beatmapType);
+
         if (collection == null) yield break;
-        foreach (BeatmapObject obj in collection.LoadedObjects.ToArray()) collection.DeleteObject(obj, false, false);
-        PersistentUI.Instance.LevelLoadSlider.gameObject.SetActive(true);
+        
+        foreach (var obj in collection.LoadedObjects.ToArray()) collection.DeleteObject(obj, false, false);
+        
+        persistentUI.LevelLoadSlider.gameObject.SetActive(true);
+        
         collection.LoadedObjects = new SortedSet<BeatmapObject>(objects, new BeatmapObjectComparer());
         collection.UnsortedObjects = collection.LoadedObjects.ToList();
+        
         UpdateSlider<T>();
+        
         if (typeof(T) == typeof(BeatmapNote) || typeof(T) == typeof(BeatmapObstacle))
         {
             for (int i = 0; i < objects.Count(); i++)
             {
-                BeatmapObject data = objects.ElementAt(i);
+                var data = objects.ElementAt(i);
+
                 if (data is BeatmapNote noteData)
                 {
                     if (noteData._lineIndex >= 1000 || noteData._lineIndex <= -1000 || noteData._lineLayer >= 1000 || noteData._lineLayer <= -1000) continue;
@@ -82,6 +94,7 @@ public class MapLoader : MonoBehaviour
                     if (obstacleData._lineIndex - 1 > noteLaneSize) noteLaneSize = obstacleData._lineIndex - 1;
                 }
             }
+
             if (Settings.NonPersistentSettings.ContainsKey("NoteLanes"))
             {
                 Settings.NonPersistentSettings["NoteLanes"] = (noteLaneSize * 2).ToString();
@@ -90,6 +103,7 @@ public class MapLoader : MonoBehaviour
             {
                 Settings.NonPersistentSettings.Add("NoteLanes", (noteLaneSize * 2).ToString());
             }
+
             noteLanesController.UpdateNoteLanes((noteLaneSize * 2).ToString());
         }
         if (typeof(T) == typeof(MapEvent))
@@ -104,7 +118,7 @@ public class MapLoader : MonoBehaviour
 
     private void UpdateSlider<T>() where T : BeatmapObject
     {
-        PersistentUI.Instance.LevelLoadSliderLabel.text = $"Loading {typeof(T).Name}s... ";
-        PersistentUI.Instance.LevelLoadSlider.value = 1;
+        persistentUI.LevelLoadSliderLabel.text = $"Loading {typeof(T).Name}s... ";
+        persistentUI.LevelLoadSlider.value = 1;
     }
 }

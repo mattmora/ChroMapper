@@ -76,8 +76,6 @@ public class BeatmapEventContainer : BeatmapObjectContainer {
             );
         }
 
-        chunkID = (int)Math.Round(objectData._time / (double)BeatmapObjectContainerCollection.ChunkSize,
-                 MidpointRounding.AwayFromZero);
         transform.localEulerAngles = Vector3.zero;
         if (eventData._lightGradient != null && Settings.Instance.VisualizeChromaGradients)
         {
@@ -92,9 +90,14 @@ public class BeatmapEventContainer : BeatmapObjectContainer {
     private static readonly int FadeSize = Shader.PropertyToID("_FadeSize");
     private static readonly int SpotlightSize = Shader.PropertyToID("_SpotlightSize");
 
-    public void ChangeColor(Color color)
+    public override void SetColor(Color? color)
     {
-        mat.ForEach(it => it.SetColor(ColorTint, color));
+        if (color is null)
+        {
+            Debug.LogError("Attempted to set a null color for an event.");
+        }
+
+        mat.ForEach(it => it.SetColor(ColorTint, color ?? Color.black));
     }
 
     public void ChangeBaseColor(Color color)
@@ -141,7 +144,7 @@ public class BeatmapEventContainer : BeatmapObjectContainer {
         {
             if (eventData._value != MapEvent.LIGHT_VALUE_OFF)
             {
-                ChangeColor(eventData._lightGradient.StartColor);
+                SetColor(eventData._lightGradient.StartColor);
             }
             eventGradientController.SetVisible(true);
             eventGradientController.UpdateGradientData(eventData._lightGradient);

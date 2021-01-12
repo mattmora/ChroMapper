@@ -23,25 +23,26 @@ public class LoadInitialMap : MonoBehaviour, IAddLoadRoutine
 
     private BeatSaberSong song;
     private BeatSaberSong.DifficultyBeatmap diff;
+    private PersistentUI persistentUI;
+    private CustomPlatformsLoader platformsLoader;
 
     // This is retrieved via Zenject and done in the background, before the loading screen fades out.
     public IEnumerable<IEnumerator> AdditionalLoadRoutines => new[] { LoadMap() };
 
     [Inject]
-    private void Construct(BeatSaberSong song, BeatSaberSong.DifficultyBeatmap diff)
+    private void Construct(BeatSaberSong song, BeatSaberSong.DifficultyBeatmap diff, PersistentUI persistentUI, CustomPlatformsLoader platformsLoader)
     {
         this.song = song;
         this.diff = diff;
+        this.persistentUI = persistentUI;
+        this.platformsLoader = platformsLoader;
     }
 
     public IEnumerator LoadMap()
     {
-        if (BeatSaberSongContainer.Instance == null) yield break;
-        PersistentUI.Instance.LevelLoadSliderLabel.text = "";
+        persistentUI.LevelLoadSliderLabel.text = "";
+        
         yield return new WaitUntil(() => atsc.gridStartPosition != -1); //I need a way to find out when Start has been called.
-
-        song = BeatSaberSongContainer.Instance.song; //Grab songe data
-        diff = BeatSaberSongContainer.Instance.difficultyData;
 
         //Set up some local variables
         int environmentID = 0;
@@ -51,10 +52,11 @@ public class LoadInitialMap : MonoBehaviour, IAddLoadRoutine
         environmentID = SongInfoEditUI.GetEnvironmentIDFromString(song.environmentName); //Grab platform by name (Official or Custom)
         if (song.customData != null && song.customData["_customEnvironment"] != null && song.customData["_customEnvironment"].Value != "")
         {
-            if (CustomPlatformsLoader.Instance.GetAllEnvironmentIds().IndexOf(song.customData["_customEnvironment"] ?? "") >= 0) {
+            if (platformsLoader.GetAllEnvironmentIds().IndexOf(song.customData["_customEnvironment"] ?? "") >= 0) {
                 customPlat = true;
             }
         }
+
         if (rotationController.IsActive && diff.parentBeatmapSet.beatmapCharacteristicName != "Lawless")
         {
             environmentID = SongInfoEditUI.GetDirectionalEnvironmentIDFromString(song.allDirectionsEnvironmentName);
@@ -62,9 +64,12 @@ public class LoadInitialMap : MonoBehaviour, IAddLoadRoutine
         }
 
         //Instantiate platform, grab descriptor
-        GameObject platform = (customPlat ? CustomPlatformsLoader.Instance.LoadPlatform(song.customData["_customEnvironment"], (PlatformPrefabs[environmentID]) ?? PlatformPrefabs[0], null) : PlatformPrefabs[environmentID]) ?? PlatformPrefabs[0];
+        GameObject platform = (customPlat ? platformsLoader.LoadPlatform(song.customData["_customEnvironment"], (PlatformPrefabs[environmentID]) ?? PlatformPrefabs[0], null) : PlatformPrefabs[environmentID]) ?? PlatformPrefabs[0];
+        
         if (directional && !customPlat) platform = DirectionalPlatformPrefabs[environmentID];
+        
         GameObject instantiate = null;
+        
         if (customPlat)
         {
             instantiate = platform;
@@ -72,8 +77,9 @@ public class LoadInitialMap : MonoBehaviour, IAddLoadRoutine
         else
         {
             Debug.Log("Instanciate nonCustomPlat");
-            instantiate = Instantiate(platform, PlatformOffset, Quaternion.identity) as GameObject;
+            instantiate = Instantiate(platform, PlatformOffset, Quaternion.identity);
         }
+
         PlatformDescriptor descriptor = instantiate.GetComponent<PlatformDescriptor>();
         BeatmapEventContainer.ModifyTypeMode = descriptor.SortMode; //Change sort mode
 
@@ -104,8 +110,6 @@ public class LoadInitialMap : MonoBehaviour, IAddLoadRoutine
 
         PlatformLoadedEvent.Invoke(descriptor); //Trigger event for classes that use the platform
 
-        loader.UpdateMapData(BeatSaberSongContainer.Instance.map);
-        yield return StartCoroutine(loader.HardRefresh());
         LevelLoadedEvent?.Invoke();
     }
 }
