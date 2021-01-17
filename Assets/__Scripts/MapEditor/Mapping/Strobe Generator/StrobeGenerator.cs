@@ -44,7 +44,7 @@ public class StrobeGenerator : MonoBehaviour {
 
                 foreach (var propGroup in propGroups)
                 {
-                    int? prop = propGroup.Key;
+                    int prop = propGroup.Key;
                     if (propGroup.Count() >= 2)
                     {
                         IEnumerable<MapEvent> ordered = propGroup.OrderByDescending(x => x._time);
@@ -53,7 +53,8 @@ public class StrobeGenerator : MonoBehaviour {
 
                         IEnumerable<MapEvent> containersBetween = eventsContainer.LoadedObjects.GetViewBetween(start, end).Cast<MapEvent>().Where(x =>
                             x._type == start._type && //Grab all events between start and end point.
-                            start.IsPropogationEvent == x.IsPropogationEvent && (!start.IsPropogationEvent || start.PropId == x.PropId)
+                            (propMode != EventsContainer.PropMode.Prop || start.IsPropogationEvent == x.IsPropogationEvent && (!start.IsPropogationEvent || start.PropId == x.PropId)) &&
+                            (propMode != EventsContainer.PropMode.Light || start.IsLightIdEvent == x.IsLightIdEvent && (!start.IsLightIdEvent || start.LightId == x.LightId))
                         );
                         oldEvents.AddRange(containersBetween);
 
