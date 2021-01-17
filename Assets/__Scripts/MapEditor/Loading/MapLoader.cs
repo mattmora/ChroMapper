@@ -5,7 +5,7 @@ using UnityEngine;
 using System;
 using Zenject;
 
-public class MapLoader : MonoBehaviour
+public class MapLoader : MonoBehaviour, IAddLoadRoutine
 {
     [SerializeField] TracksManager manager;
     [SerializeField] NoteLanesController noteLanesController;
@@ -19,17 +19,14 @@ public class MapLoader : MonoBehaviour
     private Settings settings;
     private PersistentUI persistentUI;
 
+    public IEnumerable<IEnumerator> AdditionalLoadRoutines => new[] { HardRefresh() };
+
     [Inject]
     private void Construct(BeatSaberMap map, Settings settings, PersistentUI persistentUI)
     {
         this.map = map;
         this.settings = settings;
         this.persistentUI = persistentUI;
-    }
-
-    private void Start()
-    {
-        StartCoroutine(HardRefresh());
     }
 
     public void UpdateMapData(BeatSaberMap map)

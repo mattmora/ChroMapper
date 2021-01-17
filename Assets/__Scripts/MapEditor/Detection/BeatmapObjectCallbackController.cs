@@ -2,46 +2,77 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Zenject;
 
 //Name and idea totally not stolen directly from Beat Saber
-public class BeatmapObjectCallbackController : MonoBehaviour {
-
-    [SerializeField] NotesContainer notesContainer;
-    [SerializeField] EventsContainer eventsContainer;
-
-    [SerializeField] AudioTimeSyncController timeSyncController;
-
-    [SerializeField] private bool useOffsetFromConfig = true;
-    [Tooltip("Whether or not to use the Despawn or Spawn offset from settings.")]
-    [SerializeField] private bool useDespawnOffset = false;
-    [SerializeField] public float offset = 0;
-
-    [SerializeField] int nextNoteIndex = 0;
-    [SerializeField] int nextEventIndex = 0;
-
-    float curTime;
+public class BeatmapObjectCallbackController : MonoBehaviour
+{
+    private static int eventsToLookAhead = 75;
+    private static int notesToLookAhead = 25;
 
     public Action<bool, int, BeatmapObject> NotePassedThreshold;
     public Action<bool, int, BeatmapObject> EventPassedThreshold;
     public Action<bool, int> RecursiveNoteCheckFinished;
     public Action<bool, int> RecursiveEventCheckFinished;
     
+    public float offset = 0;
+
+    [SerializeField] private NotesContainer notesContainer;
+    [SerializeField] private EventsContainer eventsContainer;
+
+    [SerializeField] private int nextNoteIndex = 0;
+    [SerializeField] private int nextEventIndex = 0;
+    
     private List<BeatmapObject> nextEvents = new List<BeatmapObject>();
     private Queue<BeatmapObject> allEvents = new Queue<BeatmapObject>();
     private List<BeatmapObject> nextNotes = new List<BeatmapObject>();
     private Queue<BeatmapObject> allNotes = new Queue<BeatmapObject>();
-    private static int eventsToLookAhead = 75;
-    private static int notesToLookAhead = 25;
 
-    private void OnEnable() {
+    private float curTime;
+
+    private AudioTimeSyncController timeSyncController;
+    private string settingsName = null;
+    private int multiplier = 1;
+    private Settings settings;
+
+    [Inject]
+    private void Construct(AudioTimeSyncController atsc, Settings settings, [InjectOptional] string settingsName = null, [InjectOptional] int multiplier = 1)
+    {
+        timeSyncController = atsc;
+        this.settingsName = settingsName;
+        this.multiplier = multiplier;
+        this.settings = settings;
+    }
+
+    private void OnEnable()
+    {
         timeSyncController.OnPlayToggle += OnPlayToggle;
+
+        if (settingsName != null)
+        {
+            Settings.NotifyBySettingName(settingsName, UpdateOffset);
+            // Bit of a weird way to get the initial value but oh well?
+            UpdateOffset(Settings.AllFieldInfos[settingsName].GetValue(settings));
+        }
     }
 
-    private void OnDisable() {
+    private void UpdateOffset(object value)
+    {
+        offset = (int)value * multiplier;
+    }
+
+    private void OnDisable()
+    {
         timeSyncController.OnPlayToggle -= OnPlayToggle;
+
+        if (settingsName != null)
+        {
+            Settings.ClearSettingNotifications(settingsName);
+        }
     }
 
-    private void OnPlayToggle(bool playing) {
+    private void OnPlayToggle(bool playing)
+    {
         if (playing)
         {
             CheckAllNotes(false);
@@ -51,12 +82,8 @@ public class BeatmapObjectCallbackController : MonoBehaviour {
 
     private void LateUpdate()
     {
-        if (useOffsetFromConfig)
+        if (timeSyncController.IsPlaying)
         {
-            if (useDespawnOffset) offset = Settings.Instance.Offset_Despawning * -1;
-            else offset = Settings.Instance.Offset_Spawning;
-        }
-        if (timeSyncController.IsPlaying) {
             curTime = timeSyncController.CurrentBeat;
             RecursiveCheckNotes(true, true);
             RecursiveCheckEvents(true, true);
@@ -68,11 +95,8 @@ public class BeatmapObjectCallbackController : MonoBehaviour {
         //notesContainer.SortObjects();
         curTime = timeSyncController.CurrentBeat;
         allNotes.Clear();
-        allNotes = new Queue<BeatmapObject>(notesContainer.LoadedObjects);
-        while (allNotes.Count > 0 && allNotes.Peek()._time < curTime + offset)
-        {
-            allNotes.Dequeue();
-        }
+        allNotes = new Queue<BeatmapObject>(notesContainer.LoadedObjects.Where(o => o._time >= curTime + offset));
+        
         nextNoteIndex = notesContainer.LoadedObjects.Count - allNotes.Count;
         RecursiveNoteCheckFinished?.Invoke(natural, nextNoteIndex - 1);
         nextNotes.Clear();
@@ -83,11 +107,8 @@ public class BeatmapObjectCallbackController : MonoBehaviour {
     private void CheckAllEvents(bool natural)
     {
         allEvents.Clear();
-        allEvents = new Queue<BeatmapObject>(eventsContainer.LoadedObjects);
-        while (allEvents.Count > 0 && allEvents.Peek()._time < curTime + offset)
-        {
-            allEvents.Dequeue();
-        }
+        allEvents = new Queue<BeatmapObject>(eventsContainer.LoadedObjects.Where(o => o._time >= curTime + offset));
+               
         nextEventIndex = eventsContainer.LoadedObjects.Count - allEvents.Count;
         RecursiveEventCheckFinished?.Invoke(natural, nextEventIndex - 1);
         nextEvents.Clear();

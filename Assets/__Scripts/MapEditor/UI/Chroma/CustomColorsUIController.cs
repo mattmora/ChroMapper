@@ -2,7 +2,6 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-//TODO for the love of god please refactor this to not use BeatmapObjectContainerCollection.LoadedContainers.Values
 public class CustomColorsUIController : MonoBehaviour
 {
     public event Action CustomColorsUpdatedEvent;
@@ -42,6 +41,9 @@ public class CustomColorsUIController : MonoBehaviour
         SetColorIfNotEqual(ref redBoost, platform.colors.RedBoostColor, BeatSaberSong.DEFAULT_LEFTCOLOR, BeatSaberSongContainer.Instance.difficultyData.boostColorLeft);
         SetColorIfNotEqual(ref blueBoost, platform.colors.BlueBoostColor, BeatSaberSong.DEFAULT_RIGHTCOLOR, BeatSaberSongContainer.Instance.difficultyData.boostColorRight);
         SetColorIfNotEqual(ref obstacle, platform.colors.ObstacleColor, BeatSaberSong.DEFAULT_LEFTCOLOR, BeatSaberSongContainer.Instance.difficultyData.obstacleColor);
+
+        // temporary
+        noteAppearance.UpdateColor(redNote.color, blueNote.color);
 
         platform.colors.RedColor = eventAppearance.RedColor = redLight.color;
         platform.colors.BlueColor = eventAppearance.BlueColor = blueLight.color;

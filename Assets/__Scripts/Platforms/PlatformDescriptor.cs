@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Zenject;
 
 public class PlatformDescriptor : MonoBehaviour {
 
@@ -19,8 +20,6 @@ public class PlatformDescriptor : MonoBehaviour {
     public GridRotationController RotationController;
     [HideInInspector] public PlatformColors colors;
     public PlatformColors defaultColors = new PlatformColors();
-    [Tooltip("-1 = No Sorting | 0 = Default Sorting | 1 = Collider Platform Special")]
-    public int SortMode;
     [Tooltip("Objects to disable through the L keybind, like lights and static objects in 360 environments.")]
     public GameObject[] DisablableObjects;
     [Tooltip("Change scale of normal map for shiny objects.")]
@@ -31,11 +30,25 @@ public class PlatformDescriptor : MonoBehaviour {
 
     public bool ColorBoost { get; private set; } = false;
 
+    private Dictionary<LightsManager, Color> ChromaCustomColors = new Dictionary<LightsManager, Color>();
+    private Dictionary<LightsManager, Gradient> ChromaGradients = new Dictionary<LightsManager, Gradient>();
+
     private BeatmapObjectCallbackController callbackController;
     private RotationCallbackController rotationCallback;
     private AudioTimeSyncController atsc;
-    private Dictionary<LightsManager, Color> ChromaCustomColors = new Dictionary<LightsManager, Color>();
-    private Dictionary<LightsManager, Gradient> ChromaGradients = new Dictionary<LightsManager, Gradient>();
+    private Settings settings;
+
+    [Inject]
+    private void Construct([InjectOptional] Settings settings,
+        [InjectOptional] AudioTimeSyncController atsc,
+        [InjectOptional(Id = "GRID")] BeatmapObjectCallbackController callbackController = null,
+        [InjectOptional] RotationCallbackController rotationCallback = null)
+    {
+        this.atsc = atsc;
+        this.callbackController = callbackController;
+        this.rotationCallback = rotationCallback;
+        this.settings = settings;
+    }
 
     private void Awake()
     {
@@ -44,10 +57,18 @@ public class PlatformDescriptor : MonoBehaviour {
 
     private void Start()
     {
-        if (SceneManager.GetActiveScene().name != "999_PrefabBuilding")
+        if (RotationController != null)
         {
-            LoadInitialMap.LevelLoadedEvent += LevelLoaded;
+            RotationController.RotationCallback = rotationCallback;
+            RotationController.Init();
         }
+
+        if (callbackController != null)
+        {
+            callbackController.EventPassedThreshold += EventPassed;
+            RefreshLightingManagers();
+        }
+
         UpdateShinyMaterialSettings();
     }
 
@@ -73,24 +94,6 @@ public class PlatformDescriptor : MonoBehaviour {
         {
             callbackController.EventPassedThreshold -= EventPassed;
         }
-        if (SceneManager.GetActiveScene().name != "999_PrefabBuilding")
-        {
-            LoadInitialMap.LevelLoadedEvent -= LevelLoaded;
-        }
-    }
-
-    private void LevelLoaded()
-    {
-        callbackController = GameObject.Find("Vertical Grid Callback").GetComponent<BeatmapObjectCallbackController>();
-        rotationCallback = Resources.FindObjectsOfTypeAll<RotationCallbackController>().First();
-        atsc = rotationCallback.atsc;
-        if (RotationController != null)
-        {
-            RotationController.RotationCallback = rotationCallback;
-            RotationController.Init();
-        }
-        callbackController.EventPassedThreshold += EventPassed;
-        RefreshLightingManagers();
     }
 
     public void RefreshLightingManagers()
@@ -192,17 +195,18 @@ public class PlatformDescriptor : MonoBehaviour {
 
     void HandleLights(LightsManager group, int value, MapEvent e)
     {
+        if (group is null) return;
         Color mainColor = Color.white;
         Color invertedColor = Color.white;
-        if (group is null) return; //Why go through extra processing for shit that dont exist
-        //Check if its a legacy Chroma RGB event
-        if (value >= ColourManager.RGB_INT_OFFSET && Settings.Instance.EmulateChromaLite)
+
+        // Check if its a legacy Chroma RGB event
+        if (value >= ColourManager.RGB_INT_OFFSET && settings.EmulateChromaLite)
         {
             if (ChromaCustomColors.ContainsKey(group)) ChromaCustomColors[group] = ColourManager.ColourFromInt(value);
             else ChromaCustomColors.Add(group, ColourManager.ColourFromInt(value));
             return;
         }
-        else if (value == ColourManager.RGB_RESET && Settings.Instance.EmulateChromaLite)
+        else if (value == ColourManager.RGB_RESET && settings.EmulateChromaLite)
         {
             if (ChromaCustomColors.ContainsKey(group)) ChromaCustomColors.Remove(group);
         }
@@ -210,7 +214,7 @@ public class PlatformDescriptor : MonoBehaviour {
         if (ChromaGradients.ContainsKey(group))
         {
             MapEvent gradientEvent = ChromaGradients[group].GradientEvent;
-            if (atsc.CurrentBeat >= gradientEvent._lightGradient.Duration + gradientEvent._time || !Settings.Instance.EmulateChromaLite)
+            if (atsc.CurrentBeat >= gradientEvent._lightGradient.Duration + gradientEvent._time || !settings.EmulateChromaLite)
             {
                 StopCoroutine(ChromaGradients[group].Routine);
                 ChromaGradients.Remove(group);
@@ -218,7 +222,7 @@ public class PlatformDescriptor : MonoBehaviour {
             }
         }
 
-        if (e._lightGradient != null && Settings.Instance.EmulateChromaLite)
+        if (e._lightGradient != null && settings.EmulateChromaLite)
         {
             if (ChromaGradients.ContainsKey(group))
             {
@@ -244,7 +248,7 @@ public class PlatformDescriptor : MonoBehaviour {
         }
 
         //Check if it is a PogU new Chroma event
-        if (e._customData?.HasKey("_color") ?? false && Settings.Instance.EmulateChromaLite)
+        if (e._customData?.HasKey("_color") ?? false && settings.EmulateChromaLite)
         {
             mainColor = invertedColor = e._customData["_color"];
             ChromaCustomColors.Remove(group);
@@ -255,7 +259,7 @@ public class PlatformDescriptor : MonoBehaviour {
             }
         }
 
-        if (ChromaCustomColors.ContainsKey(group) && Settings.Instance.EmulateChromaLite)
+        if (ChromaCustomColors.ContainsKey(group) && settings.EmulateChromaLite)
         {
             mainColor = invertedColor = ChromaCustomColors[group];
             group.ChangeMultiplierAlpha(mainColor.a, group.ControllingLights);
@@ -266,7 +270,7 @@ public class PlatformDescriptor : MonoBehaviour {
 
         IEnumerable<LightingEvent> allLights = group.ControllingLights;
 
-        if ((e._customData?.HasKey("_lightID") ?? false) && Settings.Instance.EmulateChromaAdvanced)
+        if ((e._customData?.HasKey("_lightID") ?? false) && settings.EmulateChromaAdvanced)
         {
             int lightID = group.EditorToGameLightIDMap.IndexOf(e._customData["_lightID"].AsInt);
             if (lightID >= 0 && lightID < group.ControllingLights.Count)
@@ -280,7 +284,7 @@ public class PlatformDescriptor : MonoBehaviour {
             }
         }
 
-        if ((e._customData?.HasKey("_propID") ?? false) && Settings.Instance.EmulateChromaAdvanced)
+        if ((e._customData?.HasKey("_propID") ?? false) && settings.EmulateChromaAdvanced)
         {
             int propID = group.EditorToGamePropIDMap.IndexOf(e._customData["_propID"].AsInt);
             if (propID >= 0 && propID < group.LightsGroupedByZ.Length)

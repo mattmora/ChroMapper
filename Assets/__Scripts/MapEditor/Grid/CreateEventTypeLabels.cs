@@ -185,33 +185,12 @@ public class CreateEventTypeLabels : MonoBehaviour {
     /// <returns></returns>
     public static int EventTypeToModifiedType(int eventType)
     {
-        if (BeatmapEventContainer.ModifyTypeMode == -1) return eventType;
-        if (BeatmapEventContainer.ModifyTypeMode == 0)
+        if (!EventToModifiedArray.Contains(eventType))
         {
-            if (!EventToModifiedArray.Contains(eventType))
-            {
-                Debug.LogWarning($"Event Type {eventType} does not have a modified type");
-                return eventType;
-            }
-            return EventToModifiedArray[eventType];
+            Debug.LogWarning($"Event Type {eventType} does not have a modified type");
+            return eventType;
         }
-        else if (BeatmapEventContainer.ModifyTypeMode == 1)
-            switch (eventType)
-            {
-                case 5: return 1;
-                case 1: return 2;
-                case 6: return 3;
-                case 2: return 4;
-                case 7: return 5;
-                case 3: return 6;
-                case 10: return 7;
-                case 4: return 8;
-                case 11: return 9;
-                case 8: return 10;
-                case 9: return 11;
-                default: return eventType;
-            }
-        return -1;
+        return EventToModifiedArray[eventType];
     }
 
     /// <summary>
@@ -221,33 +200,12 @@ public class CreateEventTypeLabels : MonoBehaviour {
     /// <returns></returns>
     public static int ModifiedTypeToEventType(int modifiedType)
     {
-        if (BeatmapEventContainer.ModifyTypeMode == -1) return modifiedType;
-        if (BeatmapEventContainer.ModifyTypeMode == 0)
+        if (!ModifiedToEventArray.Contains(modifiedType))
         {
-            if (!ModifiedToEventArray.Contains(modifiedType))
-            {
-                Debug.LogWarning($"Event Type {modifiedType} does not have a valid event type! WTF!?!?");
-                return modifiedType;
-            }
-            return ModifiedToEventArray[modifiedType];
+            Debug.LogWarning($"Event Type {modifiedType} does not have a valid event type! WTF!?!?");
+            return modifiedType;
         }
-        else if (BeatmapEventContainer.ModifyTypeMode == 1)
-            switch (modifiedType)
-            {
-                case 1: return 5;
-                case 2: return 1;
-                case 3: return 6;
-                case 4: return 2;
-                case 5: return 7;
-                case 6: return 3;
-                case 7: return 10;
-                case 8: return 4;
-                case 9: return 11;
-                case 10: return 8;
-                case 11: return 9;
-                default: return modifiedType;
-            }
-        return -1;
+        return ModifiedToEventArray[modifiedType];
     }
 
     public int MaxLaneId()
