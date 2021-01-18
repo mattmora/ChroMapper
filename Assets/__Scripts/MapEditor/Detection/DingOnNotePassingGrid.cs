@@ -45,7 +45,7 @@ public class DingOnNotePassingGrid : MonoBehaviour
         NoteTypeToDing[BeatmapNote.NOTE_TYPE_B] = Settings.Instance.Ding_Blue_Notes;
         NoteTypeToDing[BeatmapNote.NOTE_TYPE_BOMB] = Settings.Instance.Ding_Bombs;
 
-        beatSaberCutCallbackController.offset = container.AudioTimeSyncController.GetBeatFromSeconds(0.5f);
+        beatSaberCutCallbackController.offset = atsc.GetBeatFromSeconds(0.5f);
 
         UpdateHitSoundType(Settings.Instance.NoteHitSound);
 
@@ -126,8 +126,7 @@ public class DingOnNotePassingGrid : MonoBehaviour
     void TriggerBongoCat(bool initial, int index, BeatmapObject objectData)
     {
         // Filter notes that are too far behind the current beat
-        // (Commonly occurs when Unity freezes for some unrelated fucking reason)
-        if (objectData._time - container.AudioTimeSyncController.CurrentBeat <= -0.5f) return;
+        if (objectData._time - atsc.CurrentBeat <= -0.5f) return;
 
         var soundListId = Settings.Instance.NoteHitSound;
         if (soundListId == (int)HitSounds.DISCORD)
@@ -136,13 +135,13 @@ public class DingOnNotePassingGrid : MonoBehaviour
         }
 
         // bongo cat
-        bongocat.triggerArm(objectData as BeatmapNote, container);
+        bongocat.TriggerArm(objectData as BeatmapNote, container);
     }
 
-    void PlaySound(bool initial, int index, BeatmapObject objectData) {
+    void PlaySound(bool initial, int index, BeatmapObject objectData)
+    {
         // Filter notes that are too far behind the current beat
-        // (Commonly occurs when Unity freezes for some unrelated fucking reason)
-        if (objectData._time - container.AudioTimeSyncController.CurrentBeat <= -0.5f) return;
+        if (objectData._time - atsc.CurrentBeat <= -0.5f) return;
 
         //actual ding stuff
         if (objectData._time == lastCheckedTime || !NoteTypeToDing[((BeatmapNote) objectData)._type]) return;

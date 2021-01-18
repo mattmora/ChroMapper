@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Zenject;
 
 public class EventsContainer : BeatmapObjectContainerCollection, CMInput.IEventGridActions
 {
@@ -14,8 +15,6 @@ public class EventsContainer : BeatmapObjectContainerCollection, CMInput.IEventG
     [SerializeField] private CreateEventTypeLabels labels;
     [SerializeField] private BoxSelectionPlacementController boxSelectionPlacementController;
 
-    internal PlatformDescriptor platformDescriptor;
-
     public override BeatmapObject.Type ContainerType => BeatmapObject.Type.EVENT;
 
     public int EventTypeToPropagate = MapEvent.EVENT_TYPE_RING_LIGHTS;
@@ -25,15 +24,21 @@ public class EventsContainer : BeatmapObjectContainerCollection, CMInput.IEventG
     public List<MapEvent> AllRotationEvents = new List<MapEvent>();
     public List<MapEvent> AllBoostEvents = new List<MapEvent>();
 
+    private PlatformDescriptor platformDescriptor;
+
     public enum PropMode
     {
         Off, Prop, Light
     }
     
-    public static string GetKeyForProp(PropMode mode) {
-        if (mode == PropMode.Light) return "_lightID";
-
-        return mode == PropMode.Prop ? "_propID" : null;
+    public static string GetKeyForProp(PropMode mode)
+    {
+        switch (mode)
+        {
+            case PropMode.Light: return "_lightID";
+            case PropMode.Prop: return "_propID";
+            default: return null;
+        }
     }
     
     public PropMode PropagationEditing
@@ -51,23 +56,19 @@ public class EventsContainer : BeatmapObjectContainerCollection, CMInput.IEventG
             UpdatePropagationMode();
         }
     }
+
     private PropMode propagationEditing = PropMode.Off;
+
+    [Inject]
+    private void Construct(PlatformDescriptor descriptor)
+    {
+        platformDescriptor = descriptor;
+    }
 
     private void Start()
     {
-        LoadInitialMap.PlatformLoadedEvent += PlatformLoaded;
-    }
-
-    void PlatformLoaded(PlatformDescriptor descriptor)
-    {
-        platformDescriptor = descriptor;
         labels.UpdateLabels(PropMode.Off, MapEvent.EVENT_TYPE_RING_LIGHTS, 16);
-        eventPlacement.SetGridSize(SpecialEventTypeCount + descriptor.LightingManagers.Count(s => s != null));
-    }
-
-    void OnDestroy()
-    {
-        LoadInitialMap.PlatformLoadedEvent -= PlatformLoaded;
+        eventPlacement.SetGridSize(SpecialEventTypeCount + platformDescriptor.LightingManagers.Count(s => s != null));
     }
 
     internal override void SubscribeToCallbacks()
@@ -166,7 +167,7 @@ public class EventsContainer : BeatmapObjectContainerCollection, CMInput.IEventG
         if (LoadedContainers.ContainsKey(objectData))
         {
             MapEvent e = objectData as MapEvent;
-            if (e._lightGradient != null && Settings.Instance.VisualizeChromaGradients && isActiveAndEnabled)
+            if (e._lightGradient != null && Settings.VisualizeChromaGradients && isActiveAndEnabled)
             {
                 StartCoroutine(WaitForGradientThenRecycle(e));
             }

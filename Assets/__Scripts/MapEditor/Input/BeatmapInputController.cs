@@ -2,10 +2,12 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using Zenject;
 
 public class BeatmapInputController<T> : MonoBehaviour, CMInput.IBeatmapObjectsActions where T : BeatmapObjectContainer
 {
     [SerializeField] protected CustomStandaloneInputModule customStandaloneInputModule;
+
     protected bool isSelecting;
     protected Vector2 mousePosition;
 
@@ -13,8 +15,16 @@ public class BeatmapInputController<T> : MonoBehaviour, CMInput.IBeatmapObjectsA
     private float timeWhenFirstSelecting = 0;
     private bool massSelect = false;
 
+    protected AudioTimeSyncController atsc;
+
+    [Inject]
+    private void Construct(AudioTimeSyncController atsc)
+    {
+        this.atsc = atsc;
+    }
+
     // Start is called before the first frame update
-    void Start()
+    private void Start()
     {
         mainCamera = Camera.main;
     }
@@ -118,8 +128,7 @@ public class BeatmapInputController<T> : MonoBehaviour, CMInput.IBeatmapObjectsA
             RaycastFirstObject(out T con);
             if (con != null)
             {
-                // TODO make this use an AudioTimeSyncController reference when Zenject is added.
-                BeatmapObjectContainerCollection.GetCollectionForType(con.objectData.beatmapType).AudioTimeSyncController.MoveToTimeInBeats(con.objectData._time);
+                atsc.MoveToTimeInBeats(con.objectData._time);
             }
         }
     }

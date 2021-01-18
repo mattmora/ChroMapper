@@ -1,7 +1,9 @@
 ﻿using System;
 using UnityEngine;
+using Zenject;
 
-public class EditorScaleController : MonoBehaviour {
+public class EditorScaleController : MonoBehaviour
+{
 
     public static float EditorScale = 4;
     public static Action<float> EditorScaleChangedEvent;
@@ -10,13 +12,27 @@ public class EditorScaleController : MonoBehaviour {
 
     [SerializeField] private Transform moveableGridTransform;
     [SerializeField] private Transform[] scalingOffsets;
+    
     private BeatmapObjectContainerCollection[] collections;
-    [SerializeField] private AudioTimeSyncController atsc;
+    
+    private AudioTimeSyncController atsc;
+    private Settings settings;
+    private BeatSaberSong song;
+    private BeatSaberSong.DifficultyBeatmap diff;
+
+    [Inject]
+    private void Construct(AudioTimeSyncController atsc, Settings settings, BeatSaberSong song, BeatSaberSong.DifficultyBeatmap diff)
+    {
+        this.atsc = atsc;
+        this.settings = settings;
+        this.song = song;
+        this.diff = diff;
+    }
 
     public void UpdateEditorScale(object value)
     {
-        if (Settings.Instance.NoteJumpSpeedForEditorScale) return;
-        EditorScale = (float)Convert.ChangeType(value, typeof(float));
+        if (settings.NoteJumpSpeedForEditorScale) return;
+        EditorScale = (float)value;
         if (PreviousEditorScale != EditorScale) Apply();
     }
 
@@ -29,6 +45,7 @@ public class EditorScaleController : MonoBehaviour {
                 b.UpdateGridPosition();
             }
         }
+
         atsc.MoveToTimeInSeconds(atsc.CurrentSeconds);
         EditorScaleChangedEvent?.Invoke(EditorScale);
         PreviousEditorScale = EditorScale;
@@ -37,24 +54,45 @@ public class EditorScaleController : MonoBehaviour {
     }
 
 	// Use this for initialization
-	void Start () {
+	private void Start ()
+    {
         collections = moveableGridTransform.GetComponents<BeatmapObjectContainerCollection>();
-        PreviousEditorScale = EditorScale = Settings.Instance.EditorScale;
-        if (Settings.Instance.NoteJumpSpeedForEditorScale)
+        
+        if (settings.NoteJumpSpeedForEditorScale)
         {
-            float bps = 60f / BeatSaberSongContainer.Instance.song.beatsPerMinute;
-            float songNoteJumpSpeed = BeatSaberSongContainer.Instance.difficultyData.noteJumpMovementSpeed;
-
-            // When doing the math, it turns out that this all cancels out into what you see
-            // We don't know where the hell 5/3 comes from, yay for magic numbers
-            EditorScale = (5 / 3f) * songNoteJumpSpeed * bps;
+            CalculateNoteJumpSpeedScale();
         }
-        Settings.NotifyBySettingName("EditorScale", UpdateEditorScale);
+        else
+        {
+            PreviousEditorScale = EditorScale = settings.EditorScale;
+        }
+
+        Settings.NotifyBySettingName(nameof(Settings.EditorScale), UpdateEditorScale);
+        Settings.NotifyBySettingName(nameof(Settings.NoteJumpSpeedForEditorScale), CalculateNoteJumpSpeedScale);
         Apply();
 	}
 
     private void OnDestroy()
     {
-        Settings.ClearSettingNotifications("EditorScale");
+        Settings.ClearSettingNotifications(nameof(Settings.EditorScale));
+        Settings.ClearSettingNotifications(nameof(Settings.NoteJumpSpeedForEditorScale));
+    }
+
+    private void CalculateNoteJumpSpeedScale(object value = null)
+    {
+        var useNJSScale = (bool)value;
+
+        if (!useNJSScale)
+        {
+            UpdateEditorScale(settings.EditorScale);
+            return;
+        }
+
+        float bps = 60f / song.beatsPerMinute;
+        float songNoteJumpSpeed = diff.noteJumpMovementSpeed;
+
+        // When doing the math, it turns out that this all cancels out into what you see
+        // We don't know where the hell 5/3 comes from, yay for magic numbers
+        EditorScale = 5 / 3f * songNoteJumpSpeed * bps;
     }
 }

@@ -16,12 +16,13 @@ public class CustomEventsContainer : BeatmapObjectContainerCollection, CMInput.I
     public override BeatmapObject.Type ContainerType => BeatmapObject.Type.CUSTOM_EVENT;
 
     public ReadOnlyCollection<string> CustomEventTypes => customEventTypes.AsReadOnly();
+
     private List<string> customEventTypes = new List<string>();
 
     private void Start()
     {
         RefreshTrack();
-        if (!Settings.Instance.AdvancedShit)
+        if (!Settings.AdvancedShit)
         {
             Debug.LogWarning("Disabling some objects since an Advanced setting is not enabled...");
             foreach (Transform t in customEventScalingOffsets)
@@ -36,7 +37,7 @@ public class CustomEventsContainer : BeatmapObjectContainerCollection, CMInput.I
 
     protected override void OnObjectSpawned(BeatmapObject obj)
     {
-        BeatmapCustomEvent customEvent = obj as BeatmapCustomEvent;
+        var customEvent = obj as BeatmapCustomEvent;
         if (!customEventTypes.Contains(customEvent._type))
         {
             customEventTypes.Add(customEvent._type);
@@ -48,7 +49,7 @@ public class CustomEventsContainer : BeatmapObjectContainerCollection, CMInput.I
     {
         foreach (Transform t in customEventScalingOffsets)
         {
-            Vector3 localScale = t.localScale;
+            var localScale = t.localScale;
             if (customEventTypes.Count == 0)
                 t.gameObject.SetActive(false);
             else
@@ -57,14 +58,17 @@ public class CustomEventsContainer : BeatmapObjectContainerCollection, CMInput.I
                 t.localScale = new Vector3((customEventTypes.Count / 10f) + 0.01f, localScale.y, localScale.z);
             }
         }
+
         for (int i = 0; i < customEventLabelTransform.childCount; i++)
             Destroy(customEventLabelTransform.GetChild(i).gameObject);
+
         foreach(string str in customEventTypes)
         {
-            TextMeshProUGUI newShit = Instantiate(customEventLabelPrefab.gameObject, customEventLabelTransform).GetComponent<TextMeshProUGUI>();
+            var newShit = Instantiate(customEventLabelPrefab.gameObject, customEventLabelTransform).GetComponent<TextMeshProUGUI>();
             newShit.rectTransform.localPosition = new Vector3(customEventTypes.IndexOf(str), 0.25f, 0);
             newShit.text = str;
         }
+
         foreach (BeatmapObjectContainer obj in LoadedContainers.Values) obj.UpdateGridPosition();
     }
 
@@ -77,7 +81,7 @@ public class CustomEventsContainer : BeatmapObjectContainerCollection, CMInput.I
     {
         foreach (BeatmapObject loadedObject in UnsortedObjects)
         {
-            BeatmapCustomEvent customEvent = loadedObject as BeatmapCustomEvent;
+            var customEvent = loadedObject as BeatmapCustomEvent;
             if (!customEventTypes.Contains(customEvent._type))
             {
                 customEventTypes.Add(customEvent._type);
@@ -93,8 +97,8 @@ public class CustomEventsContainer : BeatmapObjectContainerCollection, CMInput.I
 
     private void CreateNewType()
     {
-        if (PersistentUI.Instance.InputBox_IsEnabled) return;
-        PersistentUI.Instance.ShowInputBox("A new custom event type, I see?\n\n" +
+        if (PersistentUI.InputBox_IsEnabled) return;
+        PersistentUI.ShowInputBox("A new custom event type, I see?\n\n" +
             "Custom event types are for the advanced of advanced users. Node Editor and JSON knowledge are required for these babies.\n\n" +
             "If you dont know what these do, or don't have the documentation for them, turn back now.\n\n" + 
             "But if you do, what would you like to name this new event type?",
@@ -111,26 +115,27 @@ public class CustomEventsContainer : BeatmapObjectContainerCollection, CMInput.I
 
     public void OnAssignObjectstoTrack(InputAction.CallbackContext context)
     {
-        if (Settings.Instance.AdvancedShit && context.performed && !PersistentUI.Instance.InputBox_IsEnabled)
+        if (Settings.AdvancedShit && context.performed && !PersistentUI.InputBox_IsEnabled)
         {
-            PersistentUI.Instance.ShowInputBox("Assign the selected objects to a track ID.\n\n" +
+            PersistentUI.ShowInputBox("Assign the selected objects to a track ID.\n\n" +
             "If you dont know what you're doing, turn back now.", HandleTrackAssign);
         }
     }
 
     public void OnSetTrackFilter(InputAction.CallbackContext context)
     {
-        if (Settings.Instance.AdvancedShit && context.performed && !PersistentUI.Instance.InputBox_IsEnabled) SetTrackFilter();
+        if (Settings.AdvancedShit && context.performed && !PersistentUI.InputBox_IsEnabled) SetTrackFilter();
     }
 
     public void OnCreateNewEventType(InputAction.CallbackContext context)
     {
-        if (Settings.Instance.AdvancedShit && context.performed && !PersistentUI.Instance.InputBox_IsEnabled) CreateNewType();
+        if (Settings.AdvancedShit && context.performed && !PersistentUI.InputBox_IsEnabled) CreateNewType();
     }
 
     private void HandleTrackAssign(string res)
     {
         if (res is null) return;
+
         if (res == "")
         {
             foreach (BeatmapObject obj in SelectionController.SelectedObjects)
@@ -139,6 +144,7 @@ public class CustomEventsContainer : BeatmapObjectContainerCollection, CMInput.I
                 obj._customData.Remove("_track");
             }
         }
+
         foreach (BeatmapObject obj in SelectionController.SelectedObjects)
         {
             if (obj._customData == null) obj._customData = new SimpleJSON.JSONObject();

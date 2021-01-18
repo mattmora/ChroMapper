@@ -1,63 +1,91 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
+using Zenject;
 
 /// <summary>
 /// Thanks to SheetCode for being a huge help in making this work!
 /// </summary>
 public class SpectrogramChunk : MonoBehaviour
 {
+    private readonly int Rotation = Shader.PropertyToID("_Rotation");
     private readonly Vector2 spectrogramScale = new Vector2(4f, 0.1f);
-
-    Vector3[] verts;
-    int[] triangles;
 
     private WaveformGenerator waveform;
     private MeshRenderer meshRenderer;
+    private Gradient colorHeightGradient;
     private float[][] localData;
-    private float previousEditorScale;
     private int chunkID;
     private float min;
     private float max = 1;
 
     private Texture2D texture;
 
+    private AudioTimeSyncController atsc;
+    private BeatSaberSong song;
+    private Settings settings;
+
+    [Inject]
+    private void Construct(AudioTimeSyncController atsc, BeatSaberSong song, Settings settings)
+    {
+        this.atsc = atsc;
+        this.song = song;
+        this.settings = settings;
+    }
+
     private void Start()
     {
         gameObject.layer = 12;
         meshRenderer = GetComponent<MeshRenderer>();
+
+        EditorScaleController.EditorScaleChangedEvent += EditorScaleChanged;
+        atsc.OnTimeChanged += TimeUpdated;
+
+        EditorScaleChanged(EditorScaleController.EditorScale);
+        TimeUpdated();
     }
 
-    public void UpdateMesh(float[][] data, Texture2D colors, int chunkID, WaveformGenerator gen)
+    private void EditorScaleChanged(float obj)
+    {
+        // Beats per centisecond, only needed for the 3d waveform. I don't know why
+        float bpcs = song.beatsPerMinute / (60f * 100);
+        
+        transform.localPosition = new Vector3(0, -0.15f,
+            (chunkID + (waveform.WaveformType == 2 ? bpcs : 0)) * (EditorScaleController.EditorScale * BeatmapObjectContainerCollection.ChunkSize));
+        
+        transform.localScale = new Vector3(spectrogramScale.x, spectrogramScale.y,
+            BeatmapObjectContainerCollection.ChunkSize * EditorScaleController.EditorScale);
+    }
+
+    private void OnDestroy()
+    {
+        atsc.OnTimeChanged -= TimeUpdated;
+        EditorScaleController.EditorScaleChangedEvent -= EditorScaleChanged;
+    }
+
+    public void UpdateMesh(float[][] data, Texture2D colors, int chunkID, WaveformGenerator gen, Gradient gradient)
     {
         localData = data;
         texture = colors;
         this.chunkID = chunkID;
+        colorHeightGradient = gradient;
         waveform = gen;
         ReCalculateMesh();
     }
 
-    private void Update()
-    {
-        if (EditorScaleController.EditorScale != previousEditorScale)
-        {
-            previousEditorScale = EditorScaleController.EditorScale;
-            // Beats per centisecond, only needed for the 3d waveform. I don't know why
-            float bpcs = BeatSaberSongContainer.Instance.song.beatsPerMinute / (60f * 100);
-            transform.localPosition = new Vector3(0, -0.15f,
-                (chunkID + (waveform.WaveformType == 2 ? bpcs : 0)) * (EditorScaleController.EditorScale * BeatmapObjectContainerCollection.ChunkSize));
-            transform.localScale = new Vector3(spectrogramScale.x, spectrogramScale.y,
-                BeatmapObjectContainerCollection.ChunkSize * EditorScaleController.EditorScale);
-        }
-        int nearestChunk = (int)Math.Round(waveform.atsc.CurrentBeat / (double)BeatmapObjectContainerCollection.ChunkSize
+    private void TimeUpdated()
+    {   
+        int nearestChunk = (int)Math.Round(atsc.CurrentBeat / (double)BeatmapObjectContainerCollection.ChunkSize
             , MidpointRounding.AwayFromZero);
-        bool enabled = chunkID > nearestChunk - Settings.Instance.ChunkDistance && chunkID < nearestChunk + Settings.Instance.ChunkDistance;
+        
+        bool enabled = chunkID > nearestChunk - settings.ChunkDistance && chunkID < nearestChunk + settings.ChunkDistance;
+        
         if (meshRenderer.enabled != enabled) meshRenderer.enabled = enabled;
-        meshRenderer.material.SetFloat("_Rotation", transform.rotation.eulerAngles.y);
+
+        meshRenderer.material.SetFloat(Rotation, transform.rotation.eulerAngles.y);
     }
 
-    void ReCalculateMesh()
+    private void ReCalculateMesh()
     {
         Mesh mesh = GetComponent<MeshFilter>().mesh;
         mesh.Clear();
@@ -164,7 +192,7 @@ public class SpectrogramChunk : MonoBehaviour
             {
                 float lerp = Mathf.InverseLerp(min, max, vertex.y);
                 if (float.IsNaN(lerp)) lerp = 0;
-                meshColors.Add(waveform.spectrogramHeightGradient.Evaluate(lerp));
+                meshColors.Add(colorHeightGradient.Evaluate(lerp));
             }
             mesh.colors = meshColors.ToArray();
         }
@@ -205,5 +233,26 @@ public class SpectrogramChunk : MonoBehaviour
         triangles.Add(start_point + 1);
         triangles.Add(start_point + 3);
         triangles.Add(start_point + 2);
+    }
+
+    public class Factory : PlaceholderFactory<float[][], Texture2D, int, WaveformGenerator, Gradient, SpectrogramChunk>
+    {
+        private DiContainer container;
+        private GameObject chunkPrefab;
+        private Transform parentTransform;
+
+        private Factory(DiContainer container, GameObject chunkPrefab, Transform parentTransform)
+        {
+            this.container = container;
+            this.chunkPrefab = chunkPrefab;
+            this.parentTransform = parentTransform;
+        }
+
+        public override SpectrogramChunk Create(float[][] toRender, Texture2D bandColors, int id, WaveformGenerator waveformGen, Gradient colorGradient)
+        {
+            var instantiate = container.InstantiatePrefabForComponent<SpectrogramChunk>(chunkPrefab, parentTransform);
+            instantiate.UpdateMesh(toRender, bandColors, id, waveformGen, colorGradient);
+            return instantiate;
+        }
     }
 }

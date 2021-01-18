@@ -4,7 +4,6 @@ using UnityEngine.UI;
 
 public class BeatmapObstacleInputController : BeatmapInputController<BeatmapObstacleContainer>, CMInput.IObstacleObjectsActions
 {
-    [SerializeField] private AudioTimeSyncController atsc;
     [SerializeField] private ObstacleAppearanceSO obstacleAppearanceSO;
 
     public void OnChangeWallDuration(InputAction.CallbackContext context)

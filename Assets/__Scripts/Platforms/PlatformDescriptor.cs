@@ -57,7 +57,7 @@ public class PlatformDescriptor : MonoBehaviour {
 
     private void Start()
     {
-        if (RotationController != null)
+        if (rotationCallback != null)
         {
             RotationController.RotationCallback = rotationCallback;
             RotationController.Init();

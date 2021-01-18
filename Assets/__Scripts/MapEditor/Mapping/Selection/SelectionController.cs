@@ -36,15 +36,17 @@ public class SelectionController : MonoBehaviour, CMInput.ISelectingActions, CMI
 
     private BeatSaberSong song;
     private AudioTimeSyncController atsc;
+    private PlatformDescriptor platform;
 
     private bool shiftInTime = false;
     private bool shiftInPlace = false;
 
     [Inject]
-    private void Construct(BeatSaberSong song, AudioTimeSyncController atsc)
+    private void Construct(BeatSaberSong song, AudioTimeSyncController atsc, PlatformDescriptor platform)
     {
         this.song = song;
         this.atsc = atsc;
+        this.platform = platform;
     }
 
     // Use this for initialization
@@ -483,8 +485,8 @@ public class SelectionController : MonoBehaviour, CMInput.ISelectingActions, CMI
 
                     var events = eventPlacement.objectContainerCollection;
                     var lightPropMax = (eventPlacement.objectContainerCollection.PropagationEditing == EventsContainer.PropMode.Prop ?
-                        events.platformDescriptor.LightingManagers[events.EventTypeToPropagate].LightsGroupedByZ.Length :
-                        events.platformDescriptor.LightingManagers[events.EventTypeToPropagate].ControllingLights.Count) - 1;
+                        platform.LightingManagers[events.EventTypeToPropagate].LightsGroupedByZ.Length :
+                        platform.LightingManagers[events.EventTypeToPropagate].ControllingLights.Count) - 1;
 
                     if (pos == -1)
                     {

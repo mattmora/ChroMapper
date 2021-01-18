@@ -2,6 +2,7 @@
 using UnityEngine;
 using System;
 using System.Linq;
+using Zenject;
 
 public abstract class BeatmapObjectContainerCollection : MonoBehaviour
 {
@@ -12,22 +13,21 @@ public abstract class BeatmapObjectContainerCollection : MonoBehaviour
 
     private void Start()
     {
-        UpdateEpsilon(Settings.Instance.TimeValueDecimalPrecision);
+        UpdateEpsilon(Settings.TimeValueDecimalPrecision);
         Settings.NotifyBySettingName("TimeValueDecimalPrecision", UpdateEpsilon);
         Settings.NotifyBySettingName("EditorScale", UpdateEpsilon);
     }
 
     private void UpdateEpsilon(object precision)
     {
-        Epsilon = 1 / Mathf.Pow(10, Settings.Instance.TimeValueDecimalPrecision);
-        TranslucentCull = -Settings.Instance.EditorScale * Epsilon;
+        Epsilon = 1 / Mathf.Pow(10, Settings.TimeValueDecimalPrecision);
+        TranslucentCull = -Settings.EditorScale * Epsilon;
     }
 
     public static string TrackFilterID { get; private set; } = null;
 
     private static Dictionary<BeatmapObject.Type, BeatmapObjectContainerCollection> loadedCollections = new Dictionary<BeatmapObject.Type, BeatmapObjectContainerCollection>();
 
-    public AudioTimeSyncController AudioTimeSyncController;
     /// <summary>
     /// A sorted set of loaded BeatmapObjects that is garaunteed to be sorted by time.
     /// </summary>
@@ -40,18 +40,22 @@ public abstract class BeatmapObjectContainerCollection : MonoBehaviour
     /// A dictionary of all active BeatmapObjectContainers by the data they are attached to.
     /// </summary>
     public Dictionary<BeatmapObject, BeatmapObjectContainer> LoadedContainers = new Dictionary<BeatmapObject, BeatmapObjectContainer>();
-    public BeatmapObjectCallbackController SpawnCallbackController;
-    public BeatmapObjectCallbackController DespawnCallbackController;
     public Transform GridTransform;
     public Transform PoolTransform;
     public bool UseChunkLoadingWhenPlaying = false;
     public bool IgnoreTrackFilter;
 
-    private Queue<BeatmapObjectContainer> PooledContainers = new Queue<BeatmapObjectContainer>();
+    private Queue<BeatmapObjectContainer> pooledContainers = new Queue<BeatmapObjectContainer>();
     private float previousATSCBeat = -1;
     private int previousChunk = -1;
 
     public abstract BeatmapObject.Type ContainerType { get; }
+
+    protected AudioTimeSyncController AudioTimeSyncController;
+    protected BeatmapObjectCallbackController SpawnCallbackController;
+    protected BeatmapObjectCallbackController DespawnCallbackController;
+    protected Settings Settings;
+    protected PersistentUI PersistentUI;
 
     /// <summary>
     /// Grab a <see cref="BeatmapObjectContainerCollection"/> whose <see cref="ContainerType"/> matches the given type.
@@ -89,6 +93,20 @@ public abstract class BeatmapObjectContainerCollection : MonoBehaviour
         }
     }
 
+    [Inject]
+    private void Construct(AudioTimeSyncController atsc,
+        [Inject(Id = "SPAWN")] BeatmapObjectCallbackController spawnCallback,
+        [Inject(Id = "DESPAWN")] BeatmapObjectCallbackController despawnCallback,
+        Settings settings,
+        PersistentUI persistentUI)
+    {
+        AudioTimeSyncController = atsc;
+        SpawnCallbackController = spawnCallback;
+        DespawnCallbackController = despawnCallback;
+        Settings = settings;
+        PersistentUI = persistentUI;
+    }
+
     private void Awake()
     {
         BeatmapObjectContainer.FlaggedForDeletionEvent += DeleteObject;
@@ -122,7 +140,7 @@ public abstract class BeatmapObjectContainerCollection : MonoBehaviour
             int nearestChunk = (int)Math.Round(previousATSCBeat / (double)ChunkSize, MidpointRounding.AwayFromZero);
             // Since ChunkDistance is the amount of total chunks, we divide by two so that the total amount of loaded chunks
             // both before and after the current one equal to the ChunkDistance setting
-            int chunks = Mathf.RoundToInt(Settings.Instance.ChunkDistance / 2);
+            int chunks = Mathf.RoundToInt(Settings.ChunkDistance / 2);
             RefreshPool((nearestChunk - chunks) * ChunkSize - epsilon,
                 (nearestChunk + chunks) * ChunkSize + epsilon, forceRefresh);
         }
@@ -174,11 +192,11 @@ public abstract class BeatmapObjectContainerCollection : MonoBehaviour
     {
         if (obj.HasAttachedContainer) return;
         //Debug.Log($"Creating container with hash code {obj.GetHashCode()}");
-        if (!PooledContainers.Any())
+        if (!pooledContainers.Any())
         {
             CreateNewObject();
         }
-        BeatmapObjectContainer dequeued = PooledContainers.Dequeue();
+        BeatmapObjectContainer dequeued = pooledContainers.Dequeue();
         dequeued.objectData = obj;
         dequeued.transform.localEulerAngles = Vector3.zero;
         dequeued.UpdateGridPosition();
@@ -204,7 +222,7 @@ public abstract class BeatmapObjectContainerCollection : MonoBehaviour
         container.SafeSetActive(false);
         //container.transform.SetParent(PoolTransform);
         LoadedContainers.Remove(obj);
-        PooledContainers.Enqueue(container);
+        pooledContainers.Enqueue(container);
         OnContainerDespawn(container, obj);
         obj.HasAttachedContainer = false;
     }
@@ -216,7 +234,7 @@ public abstract class BeatmapObjectContainerCollection : MonoBehaviour
         baseContainer.Setup();
         //baseContainer.transform.SetParent(PoolTransform);
         baseContainer.transform.SetParent(GridTransform);
-        PooledContainers.Enqueue(baseContainer);
+        pooledContainers.Enqueue(baseContainer);
     }
 
     /// <summary>
@@ -328,7 +346,7 @@ public abstract class BeatmapObjectContainerCollection : MonoBehaviour
 
     protected void SetTrackFilter()
     {
-        PersistentUI.Instance.ShowInputBox("Filter notes and obstacles shown while editing to a certain track ID.\n\n" +
+        PersistentUI.ShowInputBox("Filter notes and obstacles shown while editing to a certain track ID.\n\n" +
             "If you dont know what you're doing, turn back now.", HandleTrackFilter);
     }
 

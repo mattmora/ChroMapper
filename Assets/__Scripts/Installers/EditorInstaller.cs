@@ -11,6 +11,9 @@ public class EditorInstaller : MonoInstaller
     [SerializeField] private BeatmapObjectCallbackController spawnCallback;
     [SerializeField] private BeatmapObjectCallbackController despawnCallback;
 
+    [SerializeField] private GameObject spectrogramChunkPrefab;
+    [SerializeField] private Transform spectrogramParentTransform;
+
     // These are all injected into the scene via the transition, so no need to re-bind them here.
     private BeatSaberSong loadedSong;
     private BeatSaberSong.DifficultyBeatmap loadedDifficultyBeatmap;
@@ -67,6 +70,7 @@ public class EditorInstaller : MonoInstaller
             platform = Instantiate(platform, LoadInitialMap.PlatformOffset, Quaternion.identity);
         }
 
+        Container.QueueForInject(platform.GetComponent<PlatformDescriptor>());
         Container.Bind<PlatformDescriptor>().FromComponentOn(platform).AsSingle();
 
         // Callback controllers
@@ -74,5 +78,9 @@ public class EditorInstaller : MonoInstaller
 
         Container.BindInstance(nameof(Settings.Offset_Despawning)).WhenInjectedIntoInstance(despawnCallback);
         Container.BindInstance(-1).WhenInjectedIntoInstance(despawnCallback);
+
+        // Factories
+        Container.BindFactory<float[][], Texture2D, int, WaveformGenerator, Gradient, SpectrogramChunk, SpectrogramChunk.Factory>()
+            .WithFactoryArguments(spectrogramChunkPrefab, spectrogramParentTransform);
     }
 }
