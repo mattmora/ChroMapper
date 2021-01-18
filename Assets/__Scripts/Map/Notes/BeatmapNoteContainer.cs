@@ -3,7 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class BeatmapNoteContainer : BeatmapObjectContainer {
+public class BeatmapNoteContainer : BeatmapObjectContainer
+{
+    private static readonly int Rotation = Shader.PropertyToID("_Rotation");
+    private static readonly int Translucent = Shader.PropertyToID("_AlwaysTranslucent");
+    private static readonly int Color = Shader.PropertyToID("_Color");
 
     public override BeatmapObject objectData { get => mapNoteData; set => mapNoteData = (BeatmapNote)value; }
 
@@ -112,8 +116,8 @@ public class BeatmapNoteContainer : BeatmapObjectContainer {
 
         noteRenderer.ForEach(it =>
         {
-            if (it.material.HasProperty("_Rotation"))
-                it.material.SetFloat("_Rotation", AssignedTrack?.RotationValue.y ?? 0);
+            if (it.material.HasProperty(Rotation))
+                it.material.SetFloat(Rotation, AssignedTrack?.RotationValue.y ?? 0);
         });
     }
 
@@ -124,8 +128,8 @@ public class BeatmapNoteContainer : BeatmapObjectContainer {
         if (newState != CurrentState) {
             noteRenderer.ForEach(it =>
             {
-                if (it.material.HasProperty("_AlwaysTranslucent"))
-                    it.material.SetFloat("_AlwaysTranslucent", newState ? 1 : 0);
+                if (it.material.HasProperty(Translucent))
+                    it.material.SetFloat(Translucent, newState ? 1 : 0);
             });
             CurrentState = newState;
         }
@@ -133,8 +137,8 @@ public class BeatmapNoteContainer : BeatmapObjectContainer {
 
     public override void SetColor(Color? color)
     {
-        noteRenderer.ForEach(it => it.material.SetColor("_Color", color ?? bombColor));
-        bombRenderer.material.SetColor("_Color", color ?? bombColor);
+        noteRenderer.ForEach(it => it.material.SetColor(Color, color ?? bombColor));
+        bombRenderer.material.SetColor(Color, color ?? bombColor);
     }
 
     public override void AssignTrack(Track track)

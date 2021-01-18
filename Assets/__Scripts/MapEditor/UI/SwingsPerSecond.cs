@@ -17,7 +17,7 @@ public class SwingsPerSecond {
         this.obstacles = obstacles;
     }
 
-    private int NotesCount => notes.LoadedObjects.Count;
+    private int NotesCount => notes.UnsortedObjects.Count;
 
     private float LastInteractiveObjectTime(float songBPM)
     {

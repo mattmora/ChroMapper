@@ -71,6 +71,7 @@ public class AudioTimeSyncController : MonoBehaviour, CMInput.IPlaybackActions, 
     private float offsetMS;
     private float songSpeed = 10f;
     private bool levelLoaded = false;
+    private float correction = 1;
 
     private AudioClip clip;
     private BeatSaberSong song;
@@ -128,36 +129,26 @@ public class AudioTimeSyncController : MonoBehaviour, CMInput.IPlaybackActions, 
 
     private void Update()
     {
-        try
+        if (!levelLoaded) return;
+
+        if (IsPlaying)
         {
-            if (!levelLoaded) return;
-            if (IsPlaying)
+            // Sync correction
+            if (CurrentSeconds > 1)
             {
-                float time = currentSeconds;
-
-                float correction = 1f;
-
-                // Sync correction
-                if (CurrentSeconds > 1)
-                {
-                    correction = songAudioSource.time / CurrentSeconds;
-                }
-
-                if (Mathf.Abs(correction - 1) >= Time.smoothDeltaTime)
-                {
-                    time = songAudioSource.time;
-                    correction = 1;
-                }
-
-                CurrentSeconds = time + (correction * (Time.deltaTime * (songSpeed / 10f)));
-
-                if (!songAudioSource.isPlaying) TogglePlaying();
+                correction = songAudioSource.time / CurrentSeconds;
             }
 
-        }
-        catch (Exception e)
-        {
-            Debug.LogException(e);
+            if (Mathf.Abs(correction - 1) >= Time.smoothDeltaTime)
+            {
+                CurrentSeconds = songAudioSource.time + (Time.deltaTime * (songSpeed / 10f));
+            }
+            else
+            {
+                CurrentSeconds += correction * (Time.deltaTime * (songSpeed / 10f));
+            }
+
+            if (!songAudioSource.isPlaying) TogglePlaying();
         }
     }
 

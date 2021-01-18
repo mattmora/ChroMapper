@@ -14,8 +14,7 @@ public class MeasureLinesController : MonoBehaviour
     [SerializeField] private GridChild measureLinesGridChild;
 
     private float previousATSCBeat = -1;
-    private Dictionary<float, TextMeshProUGUI> measureTextsByBeat = new Dictionary<float, TextMeshProUGUI>();
-    private Dictionary<float, bool> previousEnabledByBeat = new Dictionary<float, bool>();
+    private List<(float beat, TextMeshProUGUI text, bool previousState)> measureTexts = new List<(float, TextMeshProUGUI, bool)>();
 
     private bool init = false;
 
@@ -35,10 +34,9 @@ public class MeasureLinesController : MonoBehaviour
 
     private void Start()
     {
-        if (!measureTextsByBeat.Any())
+        if (!measureTexts.Any())
         {
-            measureTextsByBeat.Add(0, measureLinePrefab);
-            previousEnabledByBeat.Add(0, true);
+            measureTexts.Add((0, measureLinePrefab, true));
         }
         EditorScaleController.EditorScaleChangedEvent += EditorScaleUpdated;
     }
@@ -56,9 +54,8 @@ public class MeasureLinesController : MonoBehaviour
     public void RefreshMeasureLines()
     {
         init = false;
-        Queue<TextMeshProUGUI> existing = new Queue<TextMeshProUGUI>(measureTextsByBeat.Values);
-        measureTextsByBeat.Clear();
-        previousEnabledByBeat.Clear();
+        Queue<TextMeshProUGUI> existing = new Queue<TextMeshProUGUI>(measureTexts.Select(m => m.text));
+        measureTexts.Clear();
 
         int rawBeatsInSong = Mathf.FloorToInt(atsc.GetBeatFromSeconds(loadedClip.length));
         float jsonBeat = 0;
@@ -76,8 +73,7 @@ public class MeasureLinesController : MonoBehaviour
             var text = existing.Count > 0 ? existing.Dequeue() : Instantiate(measureLinePrefab, parent);
             text.text = $"{modifiedBeats}";
             text.transform.localPosition = new Vector3(0, jsonBeat * EditorScaleController.EditorScale, 0);
-            measureTextsByBeat.Add(jsonBeat, text);
-            previousEnabledByBeat.Add(jsonBeat, true);
+            measureTexts.Add((jsonBeat, text, true));
 
             modifiedBeats++;
             var last = allBPMChanges.Last(x => x._Beat <= modifiedBeats);
@@ -110,22 +106,22 @@ public class MeasureLinesController : MonoBehaviour
         float beatsAhead = frontNoteGridScaling.localScale.z / EditorScaleController.EditorScale;
         float beatsBehind = beatsAhead / 4f;
 
-        foreach (KeyValuePair<float, TextMeshProUGUI> kvp in measureTextsByBeat)
+        for (int i = 0; i < measureTexts.Count; i++)
         {
-            bool enabled = kvp.Key >= offsetBeat - beatsBehind && kvp.Key <= offsetBeat + beatsAhead;
-            if (previousEnabledByBeat[kvp.Key] != enabled)
+            var (beat, text, previousState) = measureTexts[i];
+
+            bool enabled = beat >= offsetBeat - beatsBehind && beat <= offsetBeat + beatsAhead;
+            
+            if (previousState != enabled)
             {
-                kvp.Value.gameObject.SetActive(enabled);
-                previousEnabledByBeat[kvp.Key] = enabled;
+                text.enabled = enabled;
+                measureTexts[i] = (beat, text, enabled);
             }
         }
     }
 
     private void RefreshPositions()
     {
-        foreach (KeyValuePair<float, TextMeshProUGUI> kvp in measureTextsByBeat)
-        {
-            kvp.Value.transform.localPosition = new Vector3(0, kvp.Key * EditorScaleController.EditorScale, 0);
-        }
+        measureTexts.ForEach(measure => measure.text.transform.localPosition = Vector3.up * measure.beat * EditorScaleController.EditorScale);
     }
 }

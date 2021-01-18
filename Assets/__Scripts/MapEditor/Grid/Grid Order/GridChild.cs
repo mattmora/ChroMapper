@@ -44,14 +44,14 @@ public class GridChild : MonoBehaviour
     public bool RegisterChildOnStart = true;
 
     public IEnumerable<Renderer> GridRenderers;
-
-    private GridOrderController gridOrderController;
+    public IEnumerable<Renderer> GridXRenderers;
 
     // Start is called before the first frame update
     void Start()
     {
         if (!RegisterChildOnStart) return;
         GridRenderers = GetComponentsInChildren<Renderer>().Where(x => x.material.shader.name.Contains("Grid"));
+        GridXRenderers = GridRenderers.Where(x => x.material.shader.name.Contains("X"));
         GridOrderController.RegisterChild(this);
     }
 }

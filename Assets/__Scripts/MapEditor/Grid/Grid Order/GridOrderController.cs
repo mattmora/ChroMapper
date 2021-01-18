@@ -69,9 +69,11 @@ public class GridOrderController : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (!dirty) return; //We do not want this updating every frame so that's why we have a Dirty system.
+        if (!dirty) return;
+
         dirty = false;
         float childX = 0;
+
         if (allChilds.Any(x => x.Key < 0))
         {
             childX -= allChilds[0].Max(x => x.Size);
@@ -82,10 +84,13 @@ public class GridOrderController : MonoBehaviour
                 childX -= 1;
             }
         }
+
+        var transformRotation = transform.localEulerAngles.y;
+
         foreach (var kvp in allChilds)
         {
             if (kvp.Key == 0) childX = 0;
-            kvp.Value.RemoveAll(x => x == null);
+
             foreach (GridChild child in kvp.Value)
             {
                 child.transform.eulerAngles = new Vector3(child.transform.eulerAngles.x, transform.eulerAngles.y,
@@ -100,9 +105,12 @@ public class GridOrderController : MonoBehaviour
                 {
                     foreach (Renderer g in child.GridRenderers)
                     {
-                        g.material.SetFloat(Rotation, transform.localEulerAngles.y);
-                        if (g.material.shader.name.Contains("Grid X"))
-                            g.material.SetFloat(Offset, transform.position.x * -1);
+                        g.material.SetFloat(Rotation, transformRotation);
+                    }
+
+                    foreach (Renderer g in child.GridXRenderers)
+                    {
+                        g.material.SetFloat(Offset, transform.position.x * -1);
                     }
                 }
             }

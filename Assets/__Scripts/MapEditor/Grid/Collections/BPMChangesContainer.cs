@@ -41,9 +41,11 @@ public class BPMChangesContainer : BeatmapObjectContainerCollection
         allGridRenderers = gridRendererParent.GetComponentsInChildren<Renderer>().Where(x => x.material.shader.name == "Grid ZDir");
         lastBPM = song.beatsPerMinute;
 
-        if (diff.customData == null) yield break;
-
         yield return new WaitUntil(() => !SceneTransitionManager.IsLoading);
+
+        RefreshGridShaders();
+
+        if (diff.customData == null) yield break;
 
         // TODO: Localize the big chunk of text
         if (diff.customData.HasKey("_editorOffset") && diff.customData["_editorOffset"] > 0f)
@@ -87,7 +89,6 @@ public class BPMChangesContainer : BeatmapObjectContainerCollection
     internal override void SubscribeToCallbacks()
     {
         EditorScaleController.EditorScaleChangedEvent += EditorScaleChanged;
-        LoadInitialMap.LevelLoadedEvent += RefreshGridShaders;
     }
 
     private void EditorScaleChanged(float obj)
@@ -101,7 +102,6 @@ public class BPMChangesContainer : BeatmapObjectContainerCollection
     internal override void UnsubscribeToCallbacks()
     {
         EditorScaleController.EditorScaleChangedEvent -= EditorScaleChanged;
-        LoadInitialMap.LevelLoadedEvent -= RefreshGridShaders;
     }
 
     protected override void OnObjectDelete(BeatmapObject obj)
@@ -179,8 +179,8 @@ public class BPMChangesContainer : BeatmapObjectContainerCollection
     /// <returns>The last <see cref="BeatmapBPMChange"/> before the given beat (or <see cref="null"/> if there is none).</returns>
     public BeatmapBPMChange FindLastBPM(float beatTimeInSongBPM, bool inclusive = true)
     {
-        if (inclusive) return UnsortedObjects.Where(x => x._time <= beatTimeInSongBPM + 0.01f).LastOrDefault() as BeatmapBPMChange;
-        return UnsortedObjects.Where(x => x._time + 0.01f < beatTimeInSongBPM).LastOrDefault() as BeatmapBPMChange;
+        if (inclusive) return LoadedObjects.Where(x => x._time <= beatTimeInSongBPM + 0.01f).LastOrDefault() as BeatmapBPMChange;
+        return LoadedObjects.Where(x => x._time + 0.01f < beatTimeInSongBPM).LastOrDefault() as BeatmapBPMChange;
     }
 
     public override BeatmapObjectContainer CreateContainer() => BeatmapBPMChangeContainer.SpawnBPMChange(null, ref bpmPrefab);

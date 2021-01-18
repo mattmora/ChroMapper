@@ -19,7 +19,6 @@ public class GridRotationController : MonoBehaviour
     private List<Renderer> allRotationalRenderers = new List<Renderer>();
 
     private static readonly int Rotation = Shader.PropertyToID("_Rotation");
-    private static readonly int Offset = Shader.PropertyToID("_Offset");
 
     private void Start()
     {
@@ -31,7 +30,7 @@ public class GridRotationController : MonoBehaviour
         RotationCallback.RotationChangedEvent += RotationChanged;
         Settings.NotifyBySettingName("RotateTrack", UpdateRotateTrack);
         if (!GetComponentsInChildren<Renderer>().Any()) return;
-        allRotationalRenderers.AddRange(GetComponentsInChildren<Renderer>().Where(x => x.material.HasProperty("_Rotation")));
+        allRotationalRenderers.AddRange(GetComponentsInChildren<Renderer>().Where(x => x.material.HasProperty(Rotation)));
     }
 
     private void UpdateRotateTrack(object obj)
@@ -64,22 +63,15 @@ public class GridRotationController : MonoBehaviour
     private void Update()
     {
         if (RotationCallback is null || !RotationCallback.IsActive || !Settings.Instance.RotateTrack) return;
-        if (targetRotation != cachedRotation)
+
+        if (Mathf.Abs(targetRotation - cachedRotation) > 0.01f)
         {
             targetRotation = cachedRotation;
-            StopAllCoroutines();
-            if (gameObject.activeInHierarchy) StartCoroutine(ChangeRotationSmooth());
         }
-    }
 
-    private IEnumerator ChangeRotationSmooth()
-    {
-        float t = 0;
-        while (t < 1)
+        if (Mathf.Abs(currentRotation - targetRotation) > 0.01f)
         {
-            t += Time.deltaTime / rotationChangingTime;
-            ChangeRotation(Mathf.Lerp(currentRotation, targetRotation, t));
-            yield return new WaitForEndOfFrame();
+            ChangeRotation(Mathf.Lerp(currentRotation, targetRotation, 0.075f));
         }
     }
 
@@ -88,12 +80,9 @@ public class GridRotationController : MonoBehaviour
         if (rotateTransform) transform.RotateAround(rotationPoint, Vector3.up, rotation - currentRotation);
         currentRotation = rotation;
         ObjectRotationChangedEvent?.Invoke();
-        foreach (Renderer g in allRotationalRenderers)
-        {
-            g.material.SetFloat(Rotation, transform.eulerAngles.y);
-            if (g.material.shader.name.Contains("Grid X"))
-                g.material.SetFloat(Offset, transform.position.x * (rotateTransform ? -1 : 1));
-        }
+
+        var transformRotation = transform.eulerAngles.y;
+        allRotationalRenderers.ForEach(r => r.material.SetFloat(Rotation, transformRotation));
     }
 
     private void OnDestroy()

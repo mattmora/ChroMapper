@@ -11,7 +11,7 @@ public class GridRenderingController : MonoBehaviour
     [SerializeField] private Renderer[] preciseBeatSegment;
     [SerializeField] private Renderer[] gridsToDisableForHighContrast;
 
-    private List<Renderer> allRenderers = new List<Renderer>();
+    public readonly List<Renderer> AllRenderers = new List<Renderer>();
 
     private static readonly int Offset = Shader.PropertyToID("_Offset");
     private static readonly int GridSpacing = Shader.PropertyToID("_GridSpacing");
@@ -21,16 +21,16 @@ public class GridRenderingController : MonoBehaviour
     private void Awake()
     {
         atsc.GridMeasureSnappingChanged += GridMeasureSnappingChanged;
-        allRenderers.AddRange(oneBeat);
-        allRenderers.AddRange(smallBeatSegment);
-        allRenderers.AddRange(detailedBeatSegment);
-        allRenderers.AddRange(preciseBeatSegment);
+        AllRenderers.AddRange(oneBeat);
+        AllRenderers.AddRange(smallBeatSegment);
+        AllRenderers.AddRange(detailedBeatSegment);
+        AllRenderers.AddRange(preciseBeatSegment);
         Settings.NotifyBySettingName(nameof(Settings.HighContrastGrids), UpdateHighContrastGrids);
     }
 
     public void UpdateOffset(float offset)
     {
-        foreach (Renderer g in allRenderers)
+        foreach (Renderer g in AllRenderers)
         {
             g.material.SetFloat(Offset, offset);
         }

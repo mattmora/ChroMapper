@@ -8,11 +8,12 @@ using Zenject;
 /// </summary>
 public class SpectrogramChunk : MonoBehaviour
 {
-    private readonly int Rotation = Shader.PropertyToID("_Rotation");
-    private readonly Vector2 spectrogramScale = new Vector2(4f, 0.1f);
+    private static readonly int Rotation = Shader.PropertyToID("_Rotation");
+    private static readonly Vector2 spectrogramScale = new Vector2(4f, 0.1f);
 
     private WaveformGenerator waveform;
     private MeshRenderer meshRenderer;
+    private Material meshMaterial;
     private Gradient colorHeightGradient;
     private float[][] localData;
     private int chunkID;
@@ -20,6 +21,8 @@ public class SpectrogramChunk : MonoBehaviour
     private float max = 1;
 
     private Texture2D texture;
+    // Reduces a seemingly expensive call to the "transform" property
+    private Transform cachedTransform;
 
     private AudioTimeSyncController atsc;
     private BeatSaberSong song;
@@ -35,8 +38,10 @@ public class SpectrogramChunk : MonoBehaviour
 
     private void Start()
     {
+        cachedTransform = transform;
         gameObject.layer = 12;
         meshRenderer = GetComponent<MeshRenderer>();
+        meshMaterial = meshRenderer.material;
 
         EditorScaleController.EditorScaleChangedEvent += EditorScaleChanged;
         atsc.OnTimeChanged += TimeUpdated;
@@ -82,7 +87,7 @@ public class SpectrogramChunk : MonoBehaviour
         
         if (meshRenderer.enabled != enabled) meshRenderer.enabled = enabled;
 
-        meshRenderer.material.SetFloat(Rotation, transform.rotation.eulerAngles.y);
+        if (enabled) meshMaterial.SetFloat(Rotation, cachedTransform.rotation.eulerAngles.y);
     }
 
     private void ReCalculateMesh()
