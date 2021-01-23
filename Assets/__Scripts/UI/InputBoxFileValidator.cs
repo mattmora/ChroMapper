@@ -90,7 +90,15 @@ public class InputBoxFileValidator : MonoBehaviour
             new ExtensionFilter("All Files", "*"),
         };
 
+        if (song is null || song.directory is null)
+        {
+            PersistentUI.Instance.ShowDialogBox("Cannot locate song directory. Did you forget to save your map?", null, PersistentUI.DialogBoxPresetType.Ok);
+            OnUpdate();
+            return;
+        }
+
         string songDir = song.directory;
+
         CMInputCallbackInstaller.DisableActionMaps(typeof(InputBoxFileValidator), new[] { typeof(CMInput.IMenusExtendedActions) });
         var paths = StandaloneFileBrowser.OpenFilePanel("Open File", songDir, exts, false);
         StartCoroutine(ClearDisabledActionMaps());

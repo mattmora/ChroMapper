@@ -94,6 +94,13 @@ public class PersistentUI : MonoBehaviour {
         bottomDisplay.host = this;
     }
 
+    private static void UpdateDSPBufferSize()
+    {
+        var config = AudioSettings.GetConfiguration();
+        config.dspBufferSize = (int) Math.Pow(2, Settings.Instance.DSPBufferSize);
+        AudioSettings.Reset(config);
+    }
+
     private void LateUpdate() {
         if (showTooltip) UpdateTooltipPosition();
     }
