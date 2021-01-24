@@ -13,16 +13,20 @@ public class RefreshMapController : MonoBehaviour, CMInput.IRefreshMapActions
     [SerializeField] private TMP_FontAsset moreOptionsFontAsset;
     [SerializeField] private TMP_FontAsset thingYouCanRefreshFontAsset;
 
-    BeatSaberSong song;
-    BeatSaberSong.DifficultyBeatmap diff;
-    BeatSaberMap map;
+    private BeatSaberSong song;
+    private BeatSaberSong.DifficultyBeatmap diff;
+    private BeatSaberMap map;
+    private SelectionController selection;
+    private PersistentUI persistentUI;
 
     [Inject]
-    private void Construct(BeatSaberSong song, BeatSaberSong.DifficultyBeatmap diff, BeatSaberMap map)
+    private void Construct(BeatSaberSong song, BeatSaberSong.DifficultyBeatmap diff, BeatSaberMap map, SelectionController selection, PersistentUI persistentUI)
     {
         this.song = song;
         this.diff = diff;
         this.map = map;
+        this.selection = selection;
+        this.persistentUI = persistentUI;
     }
 
     public void InitiateRefreshConversation()
@@ -56,20 +60,35 @@ public class RefreshMapController : MonoBehaviour, CMInput.IRefreshMapActions
 
     private IEnumerator RefreshMap(bool notes, bool obstacles, bool events, bool others, bool full)
     {
-        yield return PersistentUI.Instance.FadeInLoadingScreen();
+        yield return persistentUI.FadeInLoadingScreen();
+
         map = song.GetMapFromDifficultyBeatmap(diff);
         loader.UpdateMapData(map);
-        float currentBeat = atsc.CurrentBeat;
+
+        var currentBeat = atsc.CurrentBeat;
         atsc.MoveToTimeInBeats(0);
-        if (notes || full) yield return StartCoroutine(loader.LoadObjects(map._notes));
-        if (obstacles || full) yield return StartCoroutine(loader.LoadObjects(map._obstacles));
-        if (events || full) yield return StartCoroutine(loader.LoadObjects(map._events));
-        if (others || full) yield return StartCoroutine(loader.LoadObjects(map._BPMChanges));
-        if (others || full) yield return StartCoroutine(loader.LoadObjects(map._customEvents));
+
+        if (full)
+        {
+            yield return StartCoroutine(loader.HardRefresh());
+        }
+        else
+        {
+            if (notes) yield return StartCoroutine(loader.LoadObjects(map._notes));
+            if (obstacles) yield return StartCoroutine(loader.LoadObjects(map._obstacles));
+            if (events) yield return StartCoroutine(loader.LoadObjects(map._events));
+            if (others)
+            {
+                yield return StartCoroutine(loader.LoadObjects(map._BPMChanges));
+                yield return StartCoroutine(loader.LoadObjects(map._customEvents));
+            }
+        }
+
         tracksManager.RefreshTracks();
-        SelectionController.RefreshMap();
+        selection.RefreshMap();
         atsc.MoveToTimeInBeats(currentBeat);
-        yield return PersistentUI.Instance.FadeOutLoadingScreen();
+
+        yield return persistentUI.FadeOutLoadingScreen();
     }
 
     public void OnRefreshMap(InputAction.CallbackContext context)

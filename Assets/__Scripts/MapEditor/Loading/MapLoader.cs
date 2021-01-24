@@ -49,8 +49,6 @@ public class MapLoader : MonoBehaviour, IAddLoadRoutine
         
         manager.RefreshTracks();
         
-        SelectionController.RefreshMap();
-        
         persistentUI.LevelLoadSlider.gameObject.SetActive(false);
     }
 

@@ -14,16 +14,13 @@ public class SelectionController : MonoBehaviour, CMInput.ISelectingActions, CMI
 
     public static HashSet<BeatmapObject> SelectedObjects = new HashSet<BeatmapObject>();
     public static HashSet<BeatmapObject> CopiedObjects = new HashSet<BeatmapObject>();
-    private static float copiedBPM = 100;
-
-    public static Color SelectedColor => instance.selectedColor;
-    public static Color CopiedColor => instance.copiedColor;
 
     public static Action<BeatmapObject> ObjectWasSelectedEvent;
     public static Action SelectionChangedEvent;
     public static Action<IEnumerable<BeatmapObject>> SelectionPastedEvent;
 
     private static SelectionController instance;
+    private static float copiedBPM = 100;
 
     [SerializeField] private Material selectionMaterial;
     [SerializeField] private Transform moveableGridTransform;
@@ -35,6 +32,8 @@ public class SelectionController : MonoBehaviour, CMInput.ISelectingActions, CMI
     [SerializeField] private CreateEventTypeLabels labels;
 
     private BeatSaberSong song;
+    private Settings settings;
+    private BeatSaberMap map;
     private AudioTimeSyncController atsc;
     private PlatformDescriptor platform;
 
@@ -42,9 +41,11 @@ public class SelectionController : MonoBehaviour, CMInput.ISelectingActions, CMI
     private bool shiftInPlace = false;
 
     [Inject]
-    private void Construct(BeatSaberSong song, AudioTimeSyncController atsc, PlatformDescriptor platform)
+    private void Construct(BeatSaberSong song, Settings settings, BeatSaberMap map, AudioTimeSyncController atsc, PlatformDescriptor platform)
     {
         this.song = song;
+        this.settings = settings;
+        this.map = map;
         this.atsc = atsc;
         this.platform = platform;
     }
@@ -558,9 +559,9 @@ public class SelectionController : MonoBehaviour, CMInput.ISelectingActions, CMI
     /// <summary>
     /// Applies objects to the loaded <see cref="BeatSaberMap"/>. Should be done before saving the map.
     /// </summary>
-    public static void RefreshMap()
+    public void RefreshMap()
     {
-        if (BeatSaberSongContainer.Instance.map != null)
+        if (map != null)
         {
             Dictionary<BeatmapObject.Type, IEnumerable<BeatmapObject>> newObjects = new Dictionary<BeatmapObject.Type, IEnumerable<BeatmapObject>>();
             foreach (int num in Enum.GetValues(typeof(BeatmapObject.Type)))
@@ -570,16 +571,16 @@ public class SelectionController : MonoBehaviour, CMInput.ISelectingActions, CMI
                 if (collection is null) continue;
                 newObjects.Add(type, collection.GrabSortedObjects());
             }
-            if (Settings.Instance.Load_Notes)
-                BeatSaberSongContainer.Instance.map._notes = newObjects[BeatmapObject.Type.NOTE].Cast<BeatmapNote>().ToList();
-            if (Settings.Instance.Load_Obstacles)
-                BeatSaberSongContainer.Instance.map._obstacles = newObjects[BeatmapObject.Type.OBSTACLE].Cast<BeatmapObstacle>().ToList();
-            if (Settings.Instance.Load_Events)
-                BeatSaberSongContainer.Instance.map._events = newObjects[BeatmapObject.Type.EVENT].Cast<MapEvent>().ToList();
-            if (Settings.Instance.Load_Others)
+            if (settings.Load_Notes)
+                map._notes = newObjects[BeatmapObject.Type.NOTE].Cast<BeatmapNote>().ToList();
+            if (settings.Load_Obstacles)
+                map._obstacles = newObjects[BeatmapObject.Type.OBSTACLE].Cast<BeatmapObstacle>().ToList();
+            if (settings.Load_Events)
+                map._events = newObjects[BeatmapObject.Type.EVENT].Cast<MapEvent>().ToList();
+            if (settings.Load_Others)
             {
-                BeatSaberSongContainer.Instance.map._BPMChanges = newObjects[BeatmapObject.Type.BPM_CHANGE].Cast<BeatmapBPMChange>().ToList();
-                BeatSaberSongContainer.Instance.map._customEvents = newObjects[BeatmapObject.Type.CUSTOM_EVENT].Cast<BeatmapCustomEvent>().ToList();
+                map._BPMChanges = newObjects[BeatmapObject.Type.BPM_CHANGE].Cast<BeatmapBPMChange>().ToList();
+                map._customEvents = newObjects[BeatmapObject.Type.CUSTOM_EVENT].Cast<BeatmapCustomEvent>().ToList();
             }
         }
     }

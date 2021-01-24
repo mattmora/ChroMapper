@@ -5,33 +5,52 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using Zenject;
 
 public class AutoSaveController : MonoBehaviour, CMInput.ISavingActions
 {
     private const int MAXIMUM_AUTOSAVE_COUNT = 15;
 
-    private float t;
     [SerializeField] private Toggle autoSaveToggle;
 
     private Thread savingThread = null;
-
+    private float t = 0;
     private List<DirectoryInfo> currentAutoSaves = new List<DirectoryInfo>();
+
+    private Settings settings;
+    private BeatSaberSong song;
+    private BeatSaberSong.DifficultyBeatmap diff;
+    private BeatSaberMap map;
+    private PersistentUI persistentUI;
+    private SelectionController selection;
+
+    [Inject]
+    private void Construct(Settings settings, BeatSaberSong song, BeatSaberSong.DifficultyBeatmap diff, BeatSaberMap map, PersistentUI persistentUI,
+        SelectionController selection)
+    {
+        this.settings = settings;
+        this.song = song;
+        this.diff = diff;
+        this.map = map;
+        this.persistentUI = persistentUI;
+        this.selection = selection;
+    }
 
     public void ToggleAutoSave(bool enabled)
     {
-        Settings.Instance.AutoSave = enabled;
+        settings.AutoSave = enabled;
     }
 
-	// Use this for initialization
-	void Start ()
+	private void Start ()
     {
-        autoSaveToggle.isOn = Settings.Instance.AutoSave;
+        autoSaveToggle.isOn = settings.AutoSave;
         t = 0;
 
-        var autoSavesDir = Path.Combine(BeatSaberSongContainer.Instance.song.directory, "autosaves");
+        var autoSavesDir = Path.Combine(song.directory, "autosaves");
         if (Directory.Exists(autoSavesDir))
         {
             foreach (var dir in Directory.EnumerateDirectories(autoSavesDir))
@@ -39,15 +58,17 @@ public class AutoSaveController : MonoBehaviour, CMInput.ISavingActions
                 currentAutoSaves.Add(new DirectoryInfo(dir));
             }
         }
+
         CleanAutosaves();
     }
 	
-	// Update is called once per frame
-	void Update ()
+	private void Update ()
     {
-        if (!Settings.Instance.AutoSave || !Application.isFocused) return;
+        if (!settings.AutoSave || !Application.isFocused) return;
+        
         t += Time.deltaTime;
-        if (t > (Settings.Instance.AutoSaveInterval * 60))
+
+        if (t > (settings.AutoSaveInterval * 60))
         {
             t = 0;
             Save(true);
@@ -62,52 +83,52 @@ public class AutoSaveController : MonoBehaviour, CMInput.ISavingActions
             return;
         }
 
-        PersistentUI.Instance.DisplayMessage("Mapper", $"{(auto ? "auto" : "")}save.message", PersistentUI.DisplayMessageType.BOTTOM);
-        SelectionController.RefreshMap(); //Make sure our map is up to date.
-        savingThread = new Thread(() => //I could very well move this to its own function but I need access to the "auto" variable.
+        persistentUI.DisplayMessage("Mapper", $"{(auto ? "auto" : "")}save.message", PersistentUI.DisplayMessageType.BOTTOM);
+
+        // Make sure our map is up to date
+        selection.RefreshMap();
+
+        // Run this baby on another thread
+        Task.Run(() => SavingTask(auto));
+    }
+
+    private void SavingTask(bool auto)
+    {
+        // Making sure this does not interfere with game thread
+        Thread.CurrentThread.IsBackground = true;
+        Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+        Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
+
+        // Saving Map Data
+        var originalMap = map.directoryAndFile;
+        var originalSong = song.directory;
+
+        if (auto)
         {
-            Thread.CurrentThread.IsBackground = true; //Making sure this does not interfere with game thread
-            //Fixes weird shit regarding how people write numbers (20,35 VS 20.35), causing issues in JSON
-            //This should be thread-wide, but I have this set throughout just in case it isnt.
-            Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
-            //Saving Map Data
-            string originalMap = BeatSaberSongContainer.Instance.map.directoryAndFile;
-            string originalSong = BeatSaberSongContainer.Instance.song.directory;
-            if (auto)
-            {
-                var directory = originalSong.Split('/').ToList();
-                directory.Add("autosaves");
-                directory.Add($"{DateTime.Now:dd-MM-yyyy_HH-mm-ss}"); //timestamp
+            var autoSaveDir = Path.Combine(originalSong, "autosaves", DateTime.Now.ToString("dd-MM-yyyy_HH-mm-ss"));
 
-                string autoSaveDir = string.Join("/", directory.ToArray());
+            Debug.Log($"Auto saved to: {autoSaveDir}");
 
-                Debug.Log($"Auto saved to: {autoSaveDir}");
-                //We need to create the autosave directory before we can save the .dat difficulty into it.
-                Directory.CreateDirectory(autoSaveDir);
-                BeatSaberSongContainer.Instance.map.directoryAndFile = $"{autoSaveDir}\\{BeatSaberSongContainer.Instance.difficultyData.beatmapFilename}";
-                BeatSaberSongContainer.Instance.song.directory = autoSaveDir;
+            Directory.CreateDirectory(autoSaveDir);
 
-                var newDirectoryInfo = new DirectoryInfo(autoSaveDir);
-                currentAutoSaves.Add(newDirectoryInfo);
-                CleanAutosaves();
-            }
-            BeatSaberSongContainer.Instance.map.Save();
-            BeatSaberSongContainer.Instance.map.directoryAndFile = originalMap;
+            map.directoryAndFile = Path.Combine(autoSaveDir, diff.beatmapFilename);
+            song.directory = autoSaveDir;
 
-            BeatSaberSong.DifficultyBeatmapSet set = BeatSaberSongContainer.Instance.difficultyData.parentBeatmapSet; //Grab our set
-            BeatSaberSongContainer.Instance.song.difficultyBeatmapSets.Remove(set); //Yeet it out
-            BeatSaberSong.DifficultyBeatmap data = BeatSaberSongContainer.Instance.difficultyData; //Grab our diff data
-            set.difficultyBeatmaps.Remove(data); //Yeet out our difficulty data
-            if (BeatSaberSongContainer.Instance.difficultyData.customData == null) //if for some reason this be null, make new customdata
-                BeatSaberSongContainer.Instance.difficultyData.customData = new JSONObject();
-            set.difficultyBeatmaps.Add(BeatSaberSongContainer.Instance.difficultyData); //Add back our difficulty data
-            BeatSaberSongContainer.Instance.song.difficultyBeatmapSets.Add(set); //Add back our difficulty set
-            BeatSaberSongContainer.Instance.song.SaveSong(); //Save
-            BeatSaberSongContainer.Instance.song.directory = originalSong; //Revert directory if it was changed by autosave
-        });
+            var newDirectoryInfo = new DirectoryInfo(autoSaveDir);
+            currentAutoSaves.Add(newDirectoryInfo);
+            CleanAutosaves();
+        }
 
-        savingThread.Start();
+        map.Save();
+        map.directoryAndFile = originalMap;
+
+        if (diff.customData == null)
+        {
+            diff.customData = new JSONObject();
+        }
+
+        song.SaveSong();
+        song.directory = originalSong;
     }
 
     public void OnSave(InputAction.CallbackContext context)
