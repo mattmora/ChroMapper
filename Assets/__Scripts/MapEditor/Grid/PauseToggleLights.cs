@@ -2,19 +2,20 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Zenject;
 
 public class PauseToggleLights : MonoBehaviour
 {
-    private PlatformDescriptor descriptor;
     [SerializeField] private AudioTimeSyncController atsc;
     [SerializeField] private EventsContainer events;
 
     private MapEvent defaultBoostEvent = new MapEvent(0, 5, 0);
 
-    private const int NOT_PROP = -1;
     private Dictionary<int, LastEvents> lastEvents = new Dictionary<int, LastEvents>();
     private List<MapEvent> lastChromaEvents = new List<MapEvent>();
-    
+
+    private PlatformDescriptor descriptor;
+
     private class LastEvents
     {
         public MapEvent lastEvent = null;
@@ -22,15 +23,15 @@ public class PauseToggleLights : MonoBehaviour
         public Dictionary<int, MapEvent> LastLightIdEvents = new Dictionary<int, MapEvent>();
     }
 
-    void Awake()
-    {
-        LoadInitialMap.PlatformLoadedEvent += PlatformLoaded;
-        atsc.OnPlayToggle += PlayToggle;
-    }
-
-    private void PlatformLoaded(PlatformDescriptor platform)
+    [Inject]
+    private void Construct(PlatformDescriptor platform)
     {
         descriptor = platform;
+    }
+
+    private void Start()
+    {
+        atsc.OnPlayToggle += PlayToggle;
     }
 
     private void PlayToggle(bool isPlaying)
@@ -150,7 +151,6 @@ public class PauseToggleLights : MonoBehaviour
 
     private void OnDestroy()
     {
-        LoadInitialMap.PlatformLoadedEvent -= PlatformLoaded;
         atsc.OnPlayToggle -= PlayToggle;
     }
 }

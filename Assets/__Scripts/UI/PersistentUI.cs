@@ -106,7 +106,8 @@ public class PersistentUI : MonoBehaviour {
         AudioSettings.Reset(config);
     }
 
-    private void LateUpdate() {
+    private void LateUpdate()
+    {
         if (showTooltip) UpdateTooltipPosition();
     }
 
