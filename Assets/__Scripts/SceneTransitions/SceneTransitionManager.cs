@@ -108,7 +108,8 @@ public class SceneTransitionManager : MonoBehaviour
         if (!string.IsNullOrEmpty(key))
         {
             var message = LocalizationSettings.StringDatabase.GetLocalizedStringAsync("SongEditMenu", key);
-            yield return persistentUI.DisplayMessage(message, PersistentUI.DisplayMessageType.BOTTOM);
+            var notification = new PersistentUI.MessageDisplayer.NotificationMessage(message, PersistentUI.DisplayMessageType.BOTTOM);
+            yield return PersistentUI.Instance.DisplayMessage(notification);
         }
         yield return persistentUI.FadeOutLoadingScreen();
     }

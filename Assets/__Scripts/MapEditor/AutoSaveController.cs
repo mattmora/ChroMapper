@@ -83,7 +83,9 @@ public class AutoSaveController : MonoBehaviour, CMInput.ISavingActions
             return;
         }
 
-        persistentUI.DisplayMessage("Mapper", $"{(auto ? "auto" : "")}save.message", PersistentUI.DisplayMessageType.BOTTOM);
+        var notification = persistentUI.DisplayMessage("Mapper", $"{(auto ? "auto" : "")}save.message", PersistentUI.DisplayMessageType.BOTTOM);
+        notification.skipFade = true;
+        notification.waitTime = 5.0f;
 
         // Make sure our map is up to date
         selection.RefreshMap();
