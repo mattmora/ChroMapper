@@ -96,11 +96,13 @@ public class GridOrderController : MonoBehaviour
                 child.transform.eulerAngles = new Vector3(child.transform.eulerAngles.x, transform.eulerAngles.y,
                         child.transform.eulerAngles.z);
                 float x = childX + child.LocalOffset.x;
+
                 Vector3 side = transform.right.normalized * x;
                 Vector3 up = transform.up.normalized * child.LocalOffset.y;
                 Vector3 forward = transform.forward.normalized * child.LocalOffset.z;
                 Vector3 total = side + up + forward;
                 child.transform.position = transform.position + total;
+
                 if (child.GridRenderers?.Any() ?? false)
                 {
                     foreach (Renderer g in child.GridRenderers)
@@ -114,6 +116,7 @@ public class GridOrderController : MonoBehaviour
                     }
                 }
             }
+
             childX += Mathf.Ceil(kvp.Value.Any() ? kvp.Value.Max(x => x.Size) : 0);
             childX += 1;
         }
