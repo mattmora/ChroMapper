@@ -21,11 +21,9 @@ public abstract class PlacementController<BO, BOC, BOCC> : MonoBehaviour, CMInpu
     [SerializeField] protected GridChild gridChild;
     [SerializeField] Transform noteGridTransform;
 
-    [HideInInspector] protected virtual bool DestroyBoxCollider { get; set; } = true;
-
     [HideInInspector] protected virtual bool CanClickAndDrag { get; set; } = true;
 
-    [HideInInspector] protected virtual float RoundedTime { get; private set; } = 0;
+    [HideInInspector] internal virtual float RoundedTime { get; set; } = 0;
 
     protected bool isDraggingObject = false;
     protected bool isDraggingObjectAtTime = false;
@@ -49,6 +47,7 @@ public abstract class PlacementController<BO, BOC, BOCC> : MonoBehaviour, CMInpu
                 !DeleteToolController.IsActive && !NodeEditorController.IsActive;
         } }
 
+    public Bounds bounds = default;
     public bool IsActive = false;
 
     internal BO queuedData; //Data that is not yet applied to the BeatmapObjectContainer.
@@ -62,6 +61,38 @@ public abstract class PlacementController<BO, BOC, BOCC> : MonoBehaviour, CMInpu
         mainCamera = Camera.main;
     }
 
+    protected virtual bool TestForType<T>(RaycastHit hit, BeatmapObject.Type type) where T : MonoBehaviour
+    {
+        var placementObj = hit.transform.GetComponentInParent<T>();
+        if (placementObj != null)
+        {
+            var boundLocal = placementObj.GetComponentsInChildren<Renderer>().FirstOrDefault(it => it.name == "Grid X").bounds;
+
+            // Transform the bounds into the pseudo-world space we use for selection
+            var localTransform = placementObj.transform;
+            var localScale = localTransform.localScale;
+            var boundsNew = localTransform.InverseTransformBounds(boundLocal);
+            boundsNew.center += localTransform.localPosition;
+            boundsNew.extents = new Vector3(
+                boundsNew.extents.x * localScale.x,
+                boundsNew.extents.y * localScale.y,
+                boundsNew.extents.z * localScale.z
+            );
+
+            if (bounds == default)
+            {
+                bounds = boundsNew;
+            }
+            else
+            {
+                // Probably a bad idea but why not drag between lanes
+                bounds.Encapsulate(boundsNew);
+            }
+            return true;
+        }
+        return false;
+    }
+    
     protected void CalculateTimes(RaycastHit hit, out Vector3 roundedHit, out float roundedTime)
     {
         float currentBeat = isDraggingObjectAtTime ? draggedObjectData._time : atsc.CurrentBeat;
@@ -87,14 +118,15 @@ public abstract class PlacementController<BO, BOC, BOCC> : MonoBehaviour, CMInpu
         if (instantiatedContainer != null) instantiatedContainer.gameObject.SetActive(false);
     }
 
-    protected void RefreshVisuals()
+    internal void RefreshVisuals()
     {
         instantiatedContainer = Instantiate(objectContainerPrefab,
             parentTrack).GetComponent(typeof(BOC)) as BOC;
         instantiatedContainer.Setup();
         instantiatedContainer.OutlineVisible = false;
-        if (instantiatedContainer.GetComponent<BoxCollider>() != null && DestroyBoxCollider)
-            Destroy(instantiatedContainer.GetComponent<BoxCollider>());
+        foreach (var collider in instantiatedContainer.GetComponentsInChildren<Collider>(true))
+            Destroy(collider);
+
         instantiatedContainer.name = $"Hover {objectDataType}";
     }
 
@@ -121,7 +153,7 @@ public abstract class PlacementController<BO, BOC, BOCC> : MonoBehaviour, CMInpu
 
     internal virtual void ApplyToMap()
     {
-        objectData = BeatmapObject.GenerateCopy(queuedData);
+        objectData = queuedData;
         objectData._time = RoundedTime;
         //objectContainerCollection.RemoveConflictingObjects(new[] { objectData }, out List<BeatmapObject> conflicting);
         objectContainerCollection.SpawnObject(objectData, out List<BeatmapObject> conflicting);
@@ -205,7 +237,7 @@ public abstract class PlacementController<BO, BOC, BOCC> : MonoBehaviour, CMInpu
         if (con is null || !(con is BOC) || con.objectData.beatmapType != objectDataType || !IsActive) return false; //Filter out null objects and objects that aren't what we're targetting.
         draggedObjectData = con.objectData as BO;
         originalQueued = BeatmapObject.GenerateCopy(queuedData);
-        originalDraggedObjectData = BeatmapObject.GenerateCopy(con.objectData) as BO;
+        originalDraggedObjectData = BeatmapObject.GenerateCopy(con.objectData as BO);
         queuedData = BeatmapObject.GenerateCopy(draggedObjectData);
         draggedObjectContainer = con as BOC;
         return true;
@@ -233,19 +265,19 @@ public abstract class PlacementController<BO, BOC, BOCC> : MonoBehaviour, CMInpu
                 SelectionController.Select(draggedObjectData);
             }
         }
-        
+
         queuedData = BeatmapObject.GenerateCopy(originalQueued);
         BeatmapAction action;
         // Don't queue an action if we didn't actually change anything
-        if (!draggedObjectData.IsConflictingWith(originalDraggedObjectData))
+        if (draggedObjectData.ToString() != originalDraggedObjectData.ToString())
         {
             if (conflicting.Any())
             {
-                action = new BeatmapObjectModifiedWithConflictingAction(BeatmapObject.GenerateCopy(draggedObjectData), originalDraggedObjectData, conflicting.First(), "Modified via alt-click and drag.");
+                action = new BeatmapObjectModifiedWithConflictingAction(draggedObjectData, draggedObjectData, originalDraggedObjectData, conflicting.First(), "Modified via alt-click and drag.");
             }
             else
             {
-                action = new BeatmapObjectModifiedAction(BeatmapObject.GenerateCopy(draggedObjectData), originalDraggedObjectData, "Modified via alt-click and drag.");
+                action = new BeatmapObjectModifiedAction(draggedObjectData, draggedObjectData, originalDraggedObjectData, "Modified via alt-click and drag.");
             }
             BeatmapActionContainer.AddAction(action);
         }

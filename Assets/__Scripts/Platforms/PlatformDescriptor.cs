@@ -229,10 +229,18 @@ public class PlatformDescriptor : MonoBehaviour {
                 StopCoroutine(ChromaGradients[group].Routine);
                 ChromaGradients.Remove(group);
             }
-            Gradient gradient = new Gradient();
-            gradient.GradientEvent = e;
-            gradient.Routine = StartCoroutine(GradientRoutine(e, group));
-            ChromaGradients.Add(group, gradient);
+
+            var gradient = new Gradient
+            {
+                GradientEvent = e,
+                Routine = StartCoroutine(GradientRoutine(e, group))
+            };
+
+            // If the gradient is over already then null is returned due to coroutine never yielding
+            if (gradient.Routine != null)
+            {
+                ChromaGradients.Add(group, gradient);
+            }
         }
 
         //Set initial light values
@@ -336,9 +344,8 @@ public class PlatformDescriptor : MonoBehaviour {
         MapEvent.ChromaGradient gradient = gradientEvent._lightGradient;
         Func<float, float> easingFunc = Easing.byName[gradient.EasingType];
         float progress = 0;
-        while (progress < 1)
+        while ((progress = (atsc.CurrentBeat - gradientEvent._time) / gradient.Duration) < 1)
         {
-            progress = (atsc.CurrentBeat - gradientEvent._time) / gradient.Duration;
             Color lerped = Color.LerpUnclamped(gradient.StartColor, gradient.EndColor, easingFunc(progress));
             if (!SoloAnEventType || gradientEvent._type == SoloEventType)
             {
