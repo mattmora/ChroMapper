@@ -136,28 +136,35 @@ public class AudioTimeSyncController : MonoBehaviour, CMInput.IPlaybackActions, 
         Settings.ClearSettingNotifications("SongVolume");
     }
 
-    private void Update()
-    {
-        if (!levelLoaded) return;
-
-        if (IsPlaying)
+    private void Update() {
+        try
         {
-            // Sync correction
-            if (CurrentSeconds > 1)
+            if (!levelLoaded) return;
+            if (IsPlaying)
             {
-                correction = songAudioSource.time / CurrentSeconds;
+                var time = currentSeconds;
+
+                // Slightly more accurate than songAudioSource.time
+                var trackTime = songAudioSource.timeSamples / (float) songAudioSource.clip.frequency;
+
+                // Sync correction
+                var correction = CurrentSeconds > 1 ? trackTime / CurrentSeconds : 1f;
+
+                // Snap forward if we are more than a 2 frames out of sync as we're trying to make it one frame out?
+                if (Mathf.Abs(trackTime - CurrentSeconds) >= 2 * Time.smoothDeltaTime * (songSpeed / 10f))
+                {
+                    time = trackTime;
+                    correction = 1;
+                }
+
+                // Add frame time to current time
+                CurrentSeconds = time + (correction * (Time.deltaTime * (songSpeed / 10f)));
+
+                if (!songAudioSource.isPlaying) TogglePlaying();
             }
 
-            if (Mathf.Abs(correction - 1) >= Time.smoothDeltaTime)
-            {
-                CurrentSeconds = songAudioSource.time + (Time.deltaTime * (songSpeed / 10f));
-            }
-            else
-            {
-                CurrentSeconds += correction * (Time.deltaTime * (songSpeed / 10f));
-            }
-
-            if (!songAudioSource.isPlaying) TogglePlaying();
+        } catch (Exception e) {
+            Debug.LogException(e);
         }
     }
 
