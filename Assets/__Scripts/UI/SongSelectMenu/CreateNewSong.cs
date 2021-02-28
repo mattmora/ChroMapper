@@ -8,12 +8,14 @@ public class CreateNewSong : MonoBehaviour
 
     private SceneTransitionManager sceneTransitionManager;
     private PersistentUI persistentUI;
+    private Settings settings;
 
     [Inject]
-    public void Construct(SceneTransitionManager sceneTransitionManager, PersistentUI persistentUI)
+    public void Construct(SceneTransitionManager sceneTransitionManager, PersistentUI persistentUI, Settings settings)
     {
         this.sceneTransitionManager = sceneTransitionManager;
         this.persistentUI = persistentUI;
+        this.settings = settings;
     }
 
 	public void CreateSong()
@@ -23,14 +25,17 @@ public class CreateNewSong : MonoBehaviour
 
     private void HandleNewSongName(string res)
     {
-        if (res is null) return;
+        if (string.IsNullOrWhiteSpace(res) || string.IsNullOrEmpty(res)) return;
+
         if (list.Songs.Any(x => x.songName == res))
         {
             persistentUI.ShowInputBox("SongSelectMenu", "newmap.dialog.duplicate", HandleNewSongName, "newmap.dialog.default");
             return;
         }
 
-        BeatSaberSong song = new BeatSaberSong(list.WIPLevels, res);
+        var dir = list.WIPLevels ? settings.CustomWIPSongsFolder : settings.CustomSongsFolder;
+
+        BeatSaberSong song = new BeatSaberSong(dir, res);
         BeatSaberSong.DifficultyBeatmapSet standardSet = new BeatSaberSong.DifficultyBeatmapSet();
         song.difficultyBeatmapSets.Add(standardSet);
         

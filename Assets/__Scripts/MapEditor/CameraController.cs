@@ -2,6 +2,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using Zenject;
 using static UnityEngine.InputSystem.InputAction;
 
 public class CameraController : MonoBehaviour, CMInput.ICameraActions {
@@ -63,23 +64,31 @@ public class CameraController : MonoBehaviour, CMInput.ICameraActions {
         typeof(CMInput.IUIModeActions),
     };
 
+    private Settings settings;
+
     public static void ClearCameraMovement()
     {
         if (instance is null) return;
         instance.x = instance.y = instance.z = instance.mouseX = instance.mouseY = 0;
     }
 
+    [Inject]
+    private void Construct(Settings settings)
+    {
+        this.settings = settings;
+    }
+
     private void Start()
     {
         instance = this;
-        camera.fieldOfView = Settings.Instance.CameraFOV;
+        camera.fieldOfView = settings.CameraFOV;
         OnLocation(0);
     }
 
     void Update () {
         if (PauseManager.IsPaused || SceneTransitionManager.IsLoading) return; //Dont move camera if we are in pause menu or loading screen
 
-        camera.fieldOfView = Settings.Instance.CameraFOV;
+        camera.fieldOfView = settings.CameraFOV;
 
         if (_uiMode.selectedMode == UIModeType.PLAYING)
         {
@@ -95,7 +104,8 @@ public class CameraController : MonoBehaviour, CMInput.ICameraActions {
             return;
         }
 
-        if (canMoveCamera) {
+        if (canMoveCamera)
+        {
             if (CMInputCallbackInstaller.IsActionMapDisabled(typeof(CMInput.ICameraActions)))
             {
                 canMoveCamera = false;
@@ -104,8 +114,8 @@ public class CameraController : MonoBehaviour, CMInput.ICameraActions {
             }
             SetLockState(true);
 
-            movementSpeed = Settings.Instance.Camera_MovementSpeed;
-            mouseSensitivity = Settings.Instance.Camera_MouseSensitivity;
+            movementSpeed = settings.Camera_MovementSpeed;
+            mouseSensitivity = settings.Camera_MouseSensitivity;
 
             transform.Translate(Vector3.right * x * movementSpeed * Time.deltaTime);
             //This one is different because we don't want the player to move vertically relatively - this should use global directions
@@ -220,12 +230,12 @@ public class CameraController : MonoBehaviour, CMInput.ICameraActions {
 
         if (setLocation)
         {
-            Settings.Instance.savedPosititons[id] = new CameraPosition(transform.position, transform.rotation);
+            settings.savedPosititons[id] = new CameraPosition(transform.position, transform.rotation);
         }
-        else if (Settings.Instance.savedPosititons[id] != null)
+        else if (settings.savedPosititons[id] != null)
         {
-            transform.position = Settings.Instance.savedPosititons[id].Position;
-            transform.rotation = Settings.Instance.savedPosititons[id].Rotation;
+            transform.position = settings.savedPosititons[id].Position;
+            transform.rotation = settings.savedPosititons[id].Rotation;
         }
     }
 

@@ -9,8 +9,6 @@ public class CustomEventPlacement : PlacementController<BeatmapCustomEvent, Beat
 
     public override int PlacementXMax => objectContainerCollection.CustomEventTypes.Count;
 
-    [HideInInspector] protected override bool CanClickAndDrag { get; set; } = false;
-
     public override BeatmapAction GenerateAction(BeatmapObject spawned, IEnumerable<BeatmapObject> conflicting)
     {
         return new BeatmapObjectPlacementAction(spawned, conflicting, "Placed a Custom Event.");

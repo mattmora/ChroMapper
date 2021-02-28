@@ -251,12 +251,11 @@ public class BeatSaberSong
         TouchEditorValues();
     }
 
-    public BeatSaberSong(bool wipmap, string name = "")
+    public BeatSaberSong(string directory, string name)
     {
-        directory = null;
+        this.directory = Path.Combine(directory, name);
         json = null;
-        if (!(string.IsNullOrEmpty(name) || string.IsNullOrWhiteSpace(name))) songName = name;
-        isWIPMap = wipmap;
+        songName = name;
         TouchEditorValues();
         editors = new Editors(null);
     }
@@ -273,8 +272,6 @@ public class BeatSaberSong
     {
         try
         {
-            if (string.IsNullOrEmpty(directory))
-                directory = $"{(isWIPMap ? Settings.Instance.CustomWIPSongsFolder : Settings.Instance.CustomSongsFolder)}/{cleanSongName}";
             if (!Directory.Exists(directory)) Directory.CreateDirectory(directory);
             if (json == null) json = new JSONObject();
             if (customData == null) customData = new JSONObject();

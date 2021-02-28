@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Reflection;
-using UnityEngine;
+﻿using UnityEngine;
+using Zenject;
 
 /// <summary>
 /// Base class for Settings Binders, which abstract settings from one huge ass super class.
@@ -13,22 +10,33 @@ public abstract class SettingsBinder : MonoBehaviour
     [HideInInspector] public string BindedSetting = "None";
     [HideInInspector] public bool PopupEditorWarning = false;
 
+    protected Settings settings;
+
+    private PersistentUI persistentUI;
+
+    [Inject]
+    private void Construct(Settings settings, PersistentUI persistentUI)
+    {
+        this.settings = settings;
+        this.persistentUI = persistentUI;
+    }
+
     public virtual void SendValueToSettings(object value)
     {
         if (!string.IsNullOrEmpty(BindedSetting) && BindedSetting != "None")
         {
             if (PopupEditorWarning)
             {
-                PersistentUI.Instance?.ShowDialogBox("Options", "restartwarning", null, PersistentUI.DialogBoxPresetType.Ok);
+                persistentUI?.ShowDialogBox("Options", "restartwarning", null, PersistentUI.DialogBoxPresetType.Ok);
             }
-            Settings.ApplyOptionByName(BindedSetting, UIValueToSettings(value));
+            settings.ApplyOptionByName(BindedSetting, UIValueToSettings(value));
         }
     }
 
     public virtual object RetrieveValueFromSettings()
     {
         if (string.IsNullOrEmpty(BindedSetting) || BindedSetting == "None") return null;
-        return SettingsToUIValue(Settings.AllFieldInfos[BindedSetting].GetValue(Settings.Instance));
+        return SettingsToUIValue(Settings.AllFieldInfos[BindedSetting].GetValue(settings));
     }
 
     /// <summary>

@@ -8,8 +8,6 @@ using UnityEngine.UI;
 
 public class EventPlacement : PlacementController<MapEvent, BeatmapEventContainer, EventsContainer>, CMInput.IEventPlacementActions
 {
-    public static bool CanPlaceChromaEvents => Settings.Instance.PlaceChromaColor;
-
     [SerializeField] private EventAppearanceSO eventAppearanceSO;
     [SerializeField] private ColorPicker colorPicker;
     [SerializeField] private TMP_InputField laserSpeedInputField;
@@ -55,7 +53,7 @@ public class EventPlacement : PlacementController<MapEvent, BeatmapEventContaine
 
     public override MapEvent GenerateOriginalData()
     {
-        //chromaToggle.isOn = Settings.Instance.PlaceChromaEvents;
+        //chromaToggle.isOn = settings.PlaceChromaEvents;
         return new MapEvent(0, 0, MapEvent.LIGHT_VALUE_RED_ON);
     }
 
@@ -100,7 +98,7 @@ public class EventPlacement : PlacementController<MapEvent, BeatmapEventContaine
             else queuedData._customData?.Remove(key);
         }
 
-        if (CanPlaceChromaEvents && !queuedData.IsUtilityEvent && queuedData._value != MapEvent.LIGHT_VALUE_OFF)
+        if (settings.PlaceChromaColor && !queuedData.IsUtilityEvent && queuedData._value != MapEvent.LIGHT_VALUE_OFF)
         {
             if (queuedData._customData == null) queuedData._customData = new JSONObject();
             queuedData._customData["_color"] = colorPicker.CurrentColor;
@@ -159,7 +157,7 @@ public class EventPlacement : PlacementController<MapEvent, BeatmapEventContaine
 
     public void PlaceChroma(bool v)
     {
-        Settings.Instance.PlaceChromaColor = v;
+        settings.PlaceChromaColor = v;
     }
 
     internal override void ApplyToMap()

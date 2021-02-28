@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Zenject;
 
 public class DingOnNotePassingGrid : MonoBehaviour
 {
@@ -33,6 +34,14 @@ public class DingOnNotePassingGrid : MonoBehaviour
     private float lastCheckedTime;
     private float songSpeed = 1;
 
+    private Settings settings;
+
+    [Inject]
+    private void Construct(Settings settings)
+    {
+        this.settings = settings;
+    }
+
     private void Start()
     {
         Settings.NotifyBySettingName("Ding_Red_Notes", UpdateRedNoteDing);
@@ -41,13 +50,13 @@ public class DingOnNotePassingGrid : MonoBehaviour
         Settings.NotifyBySettingName("NoteHitSound", UpdateHitSoundType);
         Settings.NotifyBySettingName("SongSpeed", UpdateSongSpeed);
 
-        NoteTypeToDing[BeatmapNote.NOTE_TYPE_A] = Settings.Instance.Ding_Red_Notes;
-        NoteTypeToDing[BeatmapNote.NOTE_TYPE_B] = Settings.Instance.Ding_Blue_Notes;
-        NoteTypeToDing[BeatmapNote.NOTE_TYPE_BOMB] = Settings.Instance.Ding_Bombs;
+        NoteTypeToDing[BeatmapNote.NOTE_TYPE_A] = settings.Ding_Red_Notes;
+        NoteTypeToDing[BeatmapNote.NOTE_TYPE_B] = settings.Ding_Blue_Notes;
+        NoteTypeToDing[BeatmapNote.NOTE_TYPE_BOMB] = settings.Ding_Bombs;
 
         beatSaberCutCallbackController.offset = atsc.GetBeatFromSeconds(0.5f);
 
-        UpdateHitSoundType(Settings.Instance.NoteHitSound);
+        UpdateHitSoundType(settings.NoteHitSound);
 
         atsc.OnPlayToggle += OnPlayToggle;
         beatSaberCutCallbackController.NotePassedThreshold += PlaySound;
@@ -128,7 +137,7 @@ public class DingOnNotePassingGrid : MonoBehaviour
         // Filter notes that are too far behind the current beat
         if (objectData._time - atsc.CurrentBeat <= -0.5f) return;
 
-        var soundListId = Settings.Instance.NoteHitSound;
+        var soundListId = settings.NoteHitSound;
         if (soundListId == (int)HitSounds.DISCORD)
         {
             Instantiate(discordPingPrefab, gameObject.transform, true);
@@ -150,7 +159,7 @@ public class DingOnNotePassingGrid : MonoBehaviour
          * the same time that are supposed to ding from triggering the sound effects.
          */
         lastCheckedTime = objectData._time;
-        var soundListId = Settings.Instance.NoteHitSound;
+        var soundListId = settings.NoteHitSound;
         var list = soundLists[soundListId];
 
         var shortCut = false;
@@ -167,7 +176,7 @@ public class DingOnNotePassingGrid : MonoBehaviour
 
         var timeUntilDing = objectData._time - atsc.GetBeatFromSeconds(songAudioSource.time);
         var hitTime = (atsc.GetSecondsFromBeat(timeUntilDing) / songSpeed) - offset;
-        audioUtil.PlayOneShotSound(list.GetRandomClip(shortCut), Settings.Instance.NoteHitVolume, 1, hitTime);
+        audioUtil.PlayOneShotSound(list.GetRandomClip(shortCut), settings.NoteHitVolume, 1, hitTime);
     }
 
 }

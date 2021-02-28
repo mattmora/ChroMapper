@@ -14,6 +14,8 @@ public class EditorInstaller : MonoInstaller
     [SerializeField] private GameObject spectrogramChunkPrefab;
     [SerializeField] private Transform spectrogramParentTransform;
 
+    [SerializeField] private ScriptableObject[] injectedScriptableObjects;
+
     // These are all injected into the scene via the transition, so no need to re-bind them here.
     private BeatSaberSong loadedSong;
     private BeatSaberSong.DifficultyBeatmap loadedDifficultyBeatmap;
@@ -38,6 +40,13 @@ public class EditorInstaller : MonoInstaller
         BeatSaberSongContainer.Instance.difficultyData = loadedDifficultyBeatmap;
         BeatSaberSongContainer.Instance.loadedSong = loadedAudio;
         BeatSaberSongContainer.Instance.map = loadedMap;
+
+        Container.BindInstances(injectedScriptableObjects);
+
+        foreach (var so in injectedScriptableObjects)
+        {
+            Container.QueueForInject(so);
+        }
         
         // Loading platform
         var environmentID = SongInfoEditUI.GetEnvironmentIDFromString(loadedSong.environmentName);

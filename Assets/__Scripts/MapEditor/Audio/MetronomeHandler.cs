@@ -26,12 +26,16 @@ public class MetronomeHandler : MonoBehaviour
 
     private BeatSaberSong song;
     private AudioTimeSyncController atsc;
+    private Settings settings;
+    private BPMChangesContainer bpmChangesContainer;
 
     [Inject]
-    private void Construct(BeatSaberSong song, AudioTimeSyncController atsc)
+    private void Construct(BeatSaberSong song, AudioTimeSyncController atsc, Settings settings, BPMChangesContainer bpmChangesContainer)
     {
         this.song = song;
         this.atsc = atsc;
+        this.settings = settings;
+        this.bpmChangesContainer = bpmChangesContainer;
     }
 
     private void Start()
@@ -67,16 +71,18 @@ public class MetronomeHandler : MonoBehaviour
         {
             CowBellPlayed = false;
         }
-        metronomeVolume = Settings.Instance.MetronomeVolume;
+
+        metronomeVolume = settings.MetronomeVolume;
+
         if (metronomeVolume != 0f && atsc.IsPlaying)
         {
-            var collection = BeatmapObjectContainerCollection.GetCollectionForType<BPMChangesContainer>(BeatmapObject.Type.BPM_CHANGE);
-            var toCheck = collection.FindLastBPM(atsc.CurrentBeat);
+            var toCheck = bpmChangesContainer.FindLastBPM(atsc.CurrentBeat);
+
             if (lastBPMChange != toCheck)
             {
                 lastBPMChange = toCheck;
                 lastBPM = lastBPMChange?._BPM ?? song.beatsPerMinute;
-                audioUtil.PlayOneShotSound(CowBell ? cowbellSound : metronomeSound, Settings.Instance.MetronomeVolume);
+                audioUtil.PlayOneShotSound(CowBell ? cowbellSound : metronomeSound, settings.MetronomeVolume);
                 RunAnimation();
                 beatProgress = 0;
             }
@@ -86,7 +92,7 @@ public class MetronomeHandler : MonoBehaviour
             if (beatProgress >= 1)
             {
                 beatProgress %= 1;
-                audioUtil.PlayOneShotSound(CowBell ? cowbellSound : metronomeSound, Settings.Instance.MetronomeVolume);
+                audioUtil.PlayOneShotSound(CowBell ? cowbellSound : metronomeSound, settings.MetronomeVolume);
                 RunAnimation();
             }
         }
@@ -110,9 +116,10 @@ public class MetronomeHandler : MonoBehaviour
         if (playing)
         {
             RunAnimation();
-            var collection = BeatmapObjectContainerCollection.GetCollectionForType<BPMChangesContainer>(BeatmapObject.Type.BPM_CHANGE);
-            lastBPMChange = collection.FindLastBPM(atsc.CurrentBeat);
+
+            lastBPMChange = bpmChangesContainer.FindLastBPM(atsc.CurrentBeat);
             lastBPM = lastBPMChange?._BPM ?? song.beatsPerMinute;
+
             if (lastBPMChange != null)
             {
                 float differenceInSongBPM = atsc.CurrentBeat - lastBPMChange._time;

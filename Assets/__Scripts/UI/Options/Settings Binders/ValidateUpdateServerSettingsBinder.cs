@@ -19,7 +19,7 @@ public class ValidateUpdateServerSettingsBinder : SettingsBinder
     {
         pending = input.ToString();
 
-        string old = Settings.AllFieldInfos[BindedSetting].GetValue(Settings.Instance).ToString();
+        string old = Settings.AllFieldInfos[BindedSetting].GetValue(settings).ToString();
 
         if (pending != old)
         {
@@ -38,7 +38,7 @@ public class ValidateUpdateServerSettingsBinder : SettingsBinder
     {
         if (v > 0)
         {
-            Settings.AllFieldInfos[BindedSetting].SetValue(Settings.Instance, pending);
+            Settings.AllFieldInfos[BindedSetting].SetValue(settings, pending);
             errorText.StringReference.TableEntryReference = "misc.releaseserver.good";
             return;
         }

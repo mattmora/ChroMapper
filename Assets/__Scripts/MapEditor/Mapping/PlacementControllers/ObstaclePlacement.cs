@@ -33,7 +33,7 @@ public class ObstaclePlacement : PlacementController<BeatmapObstacle, BeatmapObs
     {
         get
         {
-            if (Settings.Instance.PrecisionPlacementGrid)
+            if (settings.PrecisionPlacementGrid)
             {
                 return base.IsValid || (usePrecisionPlacement && IsActive && !NodeEditorController.IsActive);
             }
@@ -188,7 +188,7 @@ public class ObstaclePlacement : PlacementController<BeatmapObstacle, BeatmapObs
             IsPlacing = false;
             queuedData._time = startTime;
             queuedData._duration = instantiatedContainer.transform.localScale.z / EditorScaleController.EditorScale;
-            if (queuedData._duration < smallestRankableWallDuration && Settings.Instance.DontPlacePerfectZeroDurationWalls)
+            if (queuedData._duration < smallestRankableWallDuration && settings.DontPlacePerfectZeroDurationWalls)
             {
                 queuedData._duration = smallestRankableWallDuration;
             }

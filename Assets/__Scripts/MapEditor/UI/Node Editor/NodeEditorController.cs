@@ -9,6 +9,7 @@ using UnityEngine.InputSystem;
 using System.Reflection;
 using UnityEngine.UI;
 using System.Text;
+using Zenject;
 
 public class NodeEditorController : MonoBehaviour, CMInput.INodeEditorActions
 {
@@ -38,12 +39,20 @@ public class NodeEditorController : MonoBehaviour, CMInput.INodeEditorActions
         typeof(CMInput.ITimelineActions)
     };
 
+    private Settings settings;
+
     // I can just apply this to the places that need them but im feeling lazy lmao
     private Type[] actionMapsDisabled => typeof(CMInput).GetNestedTypes()
         .Where(x => x.IsInterface && !actionMapsEnabledWhenNodeEditing.Contains(x)).ToArray();
 
-    // Use this for initialization
-    private void Start () {
+    [Inject]
+    private void Construct(Settings settings)
+    {
+        this.settings = settings;
+    }
+
+    private void Start ()
+    {
         SelectionController.SelectionChangedEvent += ObjectWasSelected;
     }
 
@@ -54,10 +63,10 @@ public class NodeEditorController : MonoBehaviour, CMInput.INodeEditorActions
 
     private void Update()
     {
-        if (!Settings.Instance.NodeEditor_Enabled || UIMode.SelectedMode != UIModeType.NORMAL) return;
+        if (!settings.NodeEditor_Enabled || UIMode.SelectedMode != UIModeType.NORMAL) return;
         if (SelectionController.SelectedObjects.Count == 0 && IsActive)
         {
-            if (!Settings.Instance.NodeEditor_UseKeybind)
+            if (!settings.NodeEditor_UseKeybind)
             {
                 StopAllCoroutines();
                 Close();
@@ -72,9 +81,9 @@ public class NodeEditorController : MonoBehaviour, CMInput.INodeEditorActions
         IsActive = enabled;
         if (enabled)
         {
-            height = Mathf.FloorToInt(Settings.Instance.NodeEditorSize * 20.5f);
+            height = Mathf.FloorToInt(settings.NodeEditorSize * 20.5f);
             GetComponent<RectTransform>().sizeDelta = new Vector2(300, height);
-            nodeEditorInputField.pointSize = Settings.Instance.NodeEditorTextSize;
+            nodeEditorInputField.pointSize = settings.NodeEditorTextSize;
         }
 
         float dest = enabled ? -5 : -height;
@@ -100,7 +109,7 @@ public class NodeEditorController : MonoBehaviour, CMInput.INodeEditorActions
         BeatmapActionContainer.RemoveAllActionsOfType<NodeEditorTextChangedAction>();
 
         isEditing = true;
-        if (!Settings.Instance.NodeEditor_UseKeybind)
+        if (!settings.NodeEditor_UseKeybind)
         {
             StopAllCoroutines();
             closeButton.gameObject.SetActive(false);
@@ -230,7 +239,7 @@ public class NodeEditorController : MonoBehaviour, CMInput.INodeEditorActions
     public void OnToggleNodeEditor(InputAction.CallbackContext context)
     {
         if (nodeEditorInputField.isFocused) return;
-        if (Settings.Instance.NodeEditor_UseKeybind && context.performed && !PersistentUI.Instance.InputBox_IsEnabled)
+        if (settings.NodeEditor_UseKeybind && context.performed && !PersistentUI.Instance.InputBox_IsEnabled)
         {
             StopAllCoroutines();
             if (IsActive)

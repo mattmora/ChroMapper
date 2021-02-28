@@ -63,7 +63,7 @@ public class NotePlacement : PlacementController<BeatmapNote, BeatmapNoteContain
     {
         get
         {
-            if (Settings.Instance.PrecisionPlacementGrid)
+            if (settings.PrecisionPlacementGrid)
             {
                 return base.IsValid || (usePrecisionPlacement && IsActive && !NodeEditorController.IsActive);
             }

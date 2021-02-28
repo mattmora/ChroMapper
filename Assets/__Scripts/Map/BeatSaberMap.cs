@@ -25,9 +25,10 @@ public class BeatSaberMap {
     public List<BeatmapBookmark> _bookmarks = new List<BeatmapBookmark>();
     public List<BeatmapCustomEvent> _customEvents = new List<BeatmapCustomEvent>();
 
-    public bool Save() {
-
-        try {
+    public bool Save(bool beautify = false)
+    {
+        try
+        {
             /*
              * LISTS
              */
@@ -109,7 +110,7 @@ public class BeatSaberMap {
             }
 
             // I *believe* this automatically creates the file if it doesn't exist. Needs more experiementation
-            if (Settings.Instance.AdvancedShit)
+            if (beautify)
             {
                 File.WriteAllText(directoryAndFile, mainNode.ToString(2));
             }
@@ -117,14 +118,6 @@ public class BeatSaberMap {
             { 
                 File.WriteAllText(directoryAndFile, mainNode.ToString());
             }
-            /*using (StreamWriter writer = new StreamWriter(directoryAndFile, false))
-            {
-                //Advanced users might want human readable JSON to perform easy modifications and reload them on the fly.
-                //Thus, ChroMapper "beautifies" the JSON if you are in advanced mode.
-                if (Settings.Instance.AdvancedShit)
-                    writer.Write(mainNode.ToString(2));
-                else writer.Write(mainNode.ToString());
-            }*/
 
             return true;
         }

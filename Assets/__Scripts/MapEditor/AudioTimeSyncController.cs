@@ -75,12 +75,14 @@ public class AudioTimeSyncController : MonoBehaviour, CMInput.IPlaybackActions, 
 
     private AudioClip clip;
     private BeatSaberSong song;
+    private Settings settings;
 
     [Inject]
-    private void Construct(BeatSaberSong song, AudioClip loadedSong)
+    private void Construct(Settings settings, BeatSaberSong song, AudioClip loadedSong)
     {
         clip = loadedSong;
         this.song = song;
+        this.settings = settings;
     }
 
     // Use this for initialization
@@ -94,7 +96,7 @@ public class AudioTimeSyncController : MonoBehaviour, CMInput.IPlaybackActions, 
             gridStartPosition = currentBeat * EditorScaleController.EditorScale;
             IsPlaying = false;
             songAudioSource.clip = clip;
-            songAudioSource.volume = Settings.Instance.SongVolume;
+            songAudioSource.volume = settings.SongVolume;
             waveformSource.clip = clip;
             UpdateMovables();
 
@@ -277,9 +279,9 @@ public class AudioTimeSyncController : MonoBehaviour, CMInput.IPlaybackActions, 
         {
             if (controlSnap)
             {
-                float scrollDirection;
-                if (Settings.Instance.InvertPrecisionScroll) scrollDirection = value > 0 ? 0.5f : 2;
-                else scrollDirection = value > 0 ? 2 : 0.5f;
+                float scrollDirection = settings.InvertPrecisionScroll
+                    ? (value > 0 ? 0.5f : 2)
+                    : (value > 0 ? 2 : 0.5f);
                 if (!preciselyControlSnap)
                 {
                     gridMeasureSnapping = Mathf.Clamp(Mathf.RoundToInt(gridMeasureSnapping * scrollDirection), 1, 64);
@@ -292,7 +294,7 @@ public class AudioTimeSyncController : MonoBehaviour, CMInput.IPlaybackActions, 
             }
             else
             {
-                if (Settings.Instance.InvertScrollTime) value *= -1;
+                if (settings.InvertScrollTime) value *= -1;
                 // +1 beat if we're going forward, -1 beat if we're going backwards
                 float beatShiftRaw = 1f / gridMeasureSnapping * (value > 0 ? 1f : -1f);
 

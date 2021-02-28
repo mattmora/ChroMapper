@@ -14,22 +14,24 @@ namespace Tests.Util
             if (SceneManager.GetActiveScene().name.StartsWith("03"))
                 yield break;
 
-            Settings.Instance.Reminder_Loading360Levels = false;
+            var settings = Settings.Instance; // TODO replace with zenject
+
+            settings.Reminder_Loading360Levels = false;
 
             CMInputCallbackInstaller.TestMode = true;
             yield return SceneManager.LoadSceneAsync("00_FirstBoot", LoadSceneMode.Single);
             PersistentUI.Instance.enableTransitions = false;
 
             // On pipeline this may be run fresh
-            if (!Settings.ValidateDirectory(null))
+            if (!settings.ValidateInstallation(null))
             {
                 var firstBootMenu = Object.FindObjectOfType<FirstBootMenu>();
-                Settings.Instance.BeatSaberInstallation = "/root/bs";
+                settings.BeatSaberInstallation = "/root/bs";
                 firstBootMenu.HandleGenerateMissingFolders(0);
             }
 
             yield return new WaitUntil(() => SceneManager.GetActiveScene().name.StartsWith("01") && !SceneTransitionManager.IsLoading);
-            BeatSaberSongContainer.Instance.song = new BeatSaberSong("testmap", new JSONObject());
+            BeatSaberSongContainer.Instance.song = new BeatSaberSong("testmap", new JSONObject() as JSONNode);
             var parentSet = new BeatSaberSong.DifficultyBeatmapSet("Lawless");
             var diff = new BeatSaberSong.DifficultyBeatmap(parentSet);
             diff.customData = new JSONObject();

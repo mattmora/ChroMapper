@@ -19,9 +19,7 @@ public class BoxSelectionPlacementController : PlacementController<MapEvent, Bea
 
     private List<BeatmapObject.Type> SelectedTypes = new List<BeatmapObject.Type>();
 
-    [HideInInspector] protected override bool CanClickAndDrag { get; set; } = false;
-
-    public override bool IsValid => Settings.Instance.BoxSelect && (keybindPressed || IsSelecting);
+    public override bool IsValid => settings.BoxSelect && (keybindPressed || IsSelecting);
 
     public override BeatmapAction GenerateAction(BeatmapObject spawned, IEnumerable<BeatmapObject> conflicting) => null;
 

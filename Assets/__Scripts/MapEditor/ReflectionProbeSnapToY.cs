@@ -1,26 +1,22 @@
-﻿using System;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class ReflectionProbeSnapToY : MonoBehaviour
 {
-    private Camera mainCamera;
+    [SerializeField] private Camera mainCamera;
+    
     private PlatformDescriptor descriptor;
+    private Settings settings;
 
-    private void Start()
+    private void Construct(Settings settings, PlatformDescriptor descriptor)
     {
-        mainCamera = Camera.main;
-        LoadInitialMap.PlatformLoadedEvent += LoadPlatform;
+        this.settings = settings;
+        this.descriptor = descriptor;
     }
 
-    private void LoadPlatform(PlatformDescriptor obj)
+    // Thanks to Guidev on YouTube for the original code for planar reflections, which works just fine with Reflection Probes.
+    private void Update()
     {
-        descriptor = obj;
-    }
-
-    //Thanks to Guidev on YouTube for the original code for planar reflections, which works just fine with Reflection Probes.
-    void Update()
-    {
-        if (descriptor is null || !Settings.Instance.Reflections) return;
+        if (descriptor is null || !settings.Reflections) return;
         Vector3 camDirWorld = mainCamera.transform.forward;
         Vector3 camUpWorld = mainCamera.transform.up;
         Vector3 camPosWorld = mainCamera.transform.position;
@@ -39,10 +35,5 @@ public class ReflectionProbeSnapToY : MonoBehaviour
 
         transform.position = camPosWorld;
         transform.LookAt(camPosWorld + camDirWorld, camUpWorld);
-    }
-
-    private void OnDestroy()
-    {
-        LoadInitialMap.PlatformLoadedEvent -= LoadPlatform;
     }
 }

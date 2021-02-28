@@ -1,16 +1,22 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
+using Zenject;
 
 public class ReflectionProbeSettingUpdate : MonoBehaviour
 {
     [SerializeField] private ReflectionProbe probe;
 
+    private Settings settings;
+
+    [Inject]
+    private void Construct(Settings settings)
+    {
+        this.settings = settings;
+    }
+
     void Start()
     {
         Settings.NotifyBySettingName("Reflections", UpdateReflectionSetting);
-        UpdateReflectionSetting(Settings.Instance.Reflections);
+        UpdateReflectionSetting(settings.Reflections);
     }
 
     private void UpdateReflectionSetting(object obj)

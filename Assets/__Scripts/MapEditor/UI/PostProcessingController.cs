@@ -4,34 +4,38 @@ using TMPro;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.Rendering;
 using System;
+using Zenject;
 
-public class PostProcessingController : MonoBehaviour {
+public class PostProcessingController : MonoBehaviour
+{
 
     public Volume PostProcess;
     [SerializeField] private Slider intensitySlider;
     [SerializeField] private TextMeshProUGUI intensityLabel;
     [SerializeField] private Toggle chromaticAberration;
+    
+    [Inject]
+    private void Construct(Settings settings)
+    {
+        UpdatePostProcessIntensity(settings.PostProcessingIntensity);
+        UpdateChromaticAberration(settings.ChromaticAberration);
+    }
 
     private void Start()
     {
         Settings.NotifyBySettingName(nameof(Settings.PostProcessingIntensity), UpdatePostProcessIntensity);
         Settings.NotifyBySettingName(nameof(Settings.ChromaticAberration), UpdateChromaticAberration);
-
-        UpdatePostProcessIntensity(Settings.Instance.PostProcessingIntensity);
-        UpdateChromaticAberration(Settings.Instance.ChromaticAberration);
     }
 
     public void UpdatePostProcessIntensity(object o)
     {
-        float v = Convert.ToSingle(o);
         PostProcess.profile.TryGet(out Bloom bloom);
-        bloom.intensity.value = v;
+        bloom.intensity.value = (float)o;
     }
 
     public void UpdateChromaticAberration(object o)
     {
-        bool enabled = Convert.ToBoolean(o);
         PostProcess.profile.TryGet(out ChromaticAberration ca);
-        ca.active = enabled;
+        ca.active = (bool)o;
     }
 }

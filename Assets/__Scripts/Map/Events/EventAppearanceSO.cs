@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using Zenject;
 
 [CreateAssetMenu(fileName = "EventAppearanceSO", menuName = "Map/Appearance/Event Appearance SO")]
 public class EventAppearanceSO : ScriptableObject
@@ -28,6 +29,14 @@ public class EventAppearanceSO : ScriptableObject
     [SerializeField] private Vector3 pyramidFadeShaderOffset = Vector3.zero;
     [SerializeField] private float pyramidDefaultFadeSize = 50f;
     [SerializeField] private float pyramidBoostEventFadeSize = 10f;
+
+    private Settings settings;
+
+    [Inject]
+    private void Construct(Settings settings)
+    {
+        this.settings = settings;
+    }
 
     public void SetEventAppearance(BeatmapEventContainer e, bool final = true, bool boost = false) {
         Color color = Color.white;
@@ -110,7 +119,7 @@ public class EventAppearanceSO : ScriptableObject
         }
         e.SetColor(color);
         e.ChangeBaseColor(Color.black);
-        e.UsePyramidModel = Settings.Instance.PyramidEventModels;
+        e.UsePyramidModel = settings.PyramidEventModels;
         switch (e.eventData._value)
         {
             case MapEvent.LIGHT_VALUE_OFF:
@@ -142,6 +151,6 @@ public class EventAppearanceSO : ScriptableObject
 
         e.ChangeFadeSize(e.UsePyramidModel ? pyramidDefaultFadeSize : cubeDefaultFadeSize);
 
-        if (Settings.Instance.VisualizeChromaGradients) e.UpdateGradientRendering();
+        if (settings.VisualizeChromaGradients) e.UpdateGradientRendering();
     }
 }

@@ -99,6 +99,14 @@ public class Settings : IInitializable, IDisposable
 
     private static Dictionary<string, Action<object>> nameToActions = new Dictionary<string, Action<object>>();
 
+    private PersistentUI persistentUI;
+
+    [Inject]
+    private void Construct(PersistentUI persistentUI)
+    {
+        this.persistentUI = persistentUI;
+    }
+
     public void Initialize()
     {
         Instance = this;
@@ -172,19 +180,12 @@ public class Settings : IInitializable, IDisposable
 
         if (settingsFailed)
         {
-            PersistentUI.Instance.StartCoroutine(ShowFailedDialog());
+            persistentUI.ShowDialogBox("PersistentUI", "settings.loadfailed", HandleFailedReminder,
+                PersistentUI.DialogBoxPresetType.OkIgnore, new [] { Application.persistentDataPath });
         }
 
         JSONNumber.CapNumbersToDecimals = true;
         JSONNumber.DecimalPrecision = TimeValueDecimalPrecision;
-    }
-
-    public static System.Collections.IEnumerator ShowFailedDialog()
-    {
-        // Need to wait until the settings instance has been created, just put ourselves at the end of the event loop
-        yield return new WaitForEndOfFrame();
-        PersistentUI.Instance.ShowDialogBox("PersistentUI", "settings.loadfailed",
-                Instance.HandleFailedReminder, PersistentUI.DialogBoxPresetType.OkIgnore, new object[] { Application.persistentDataPath });
     }
 
     private void HandleFailedReminder(int res)
@@ -246,11 +247,11 @@ public class Settings : IInitializable, IDisposable
         return infoNames;
     }
 
-    public static void ApplyOptionByName(string name, object value)
+    public void ApplyOptionByName(string name, object value)
     {
         if (AllFieldInfos.TryGetValue(name, out FieldInfo fieldInfo))
         {
-            fieldInfo.SetValue(Instance, value);
+            fieldInfo.SetValue(this, value);
             ManuallyNotifySettingUpdatedEvent(name, value);
         }
         else
@@ -291,25 +292,6 @@ public class Settings : IInitializable, IDisposable
     {
         if (NonPersistentSettings.ContainsKey(name)) NonPersistentSettings[name] = value;
         if (nameToActions.TryGetValue(name, out Action<object> boy)) boy?.Invoke(value);
-    }
-
-    // TODO: Replace with instance Validate method as Zenjecification continues
-    public static bool ValidateDirectory(Action<string> errorFeedback = null)
-    {
-        if (!Directory.Exists(Instance.BeatSaberInstallation)) {
-            errorFeedback?.Invoke("validate.missing");
-            return false;
-        }
-        if (!Directory.Exists(Instance.CustomSongsFolder)) {
-            errorFeedback?.Invoke("validate.nofolders");
-            return false;
-        }
-        if (!Directory.Exists(Instance.CustomWIPSongsFolder))
-        {
-            errorFeedback?.Invoke("validate.nowip");
-            return false;
-        }
-        return true;
     }
 
     public bool ValidateInstallation(Action<string> errorFeedback = null)

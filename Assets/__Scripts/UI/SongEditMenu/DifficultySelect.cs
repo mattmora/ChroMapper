@@ -206,7 +206,7 @@ public class DifficultySelect : MonoBehaviour
         }
         else
         {
-            map.Save();
+            map.Save(settings.AdvancedShit);
         }
 
         diff.RefreshRequirementsAndWarnings(map);

@@ -121,7 +121,7 @@ public class AutoSaveController : MonoBehaviour, CMInput.ISavingActions
             CleanAutosaves();
         }
 
-        map.Save();
+        map.Save(settings.AdvancedShit);
         map.directoryAndFile = originalMap;
 
         if (diff.customData == null)

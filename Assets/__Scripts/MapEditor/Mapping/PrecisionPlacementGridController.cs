@@ -24,7 +24,7 @@ public class PrecisionPlacementGridController : MonoBehaviour
     {
         if (isEnabled == isVisible) return;
         isEnabled = isVisible;
-        if (isVisible && Settings.Instance.PrecisionPlacementGrid)
+        if (isVisible)
         {
             expandedGridParent.SetActive(true);
             expandedGridBoxCollider.enabled = true;

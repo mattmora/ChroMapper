@@ -1,10 +1,10 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using TMPro;
 using System.Linq;
 using UnityEngine.Localization.Components;
 using System;
+using Zenject;
 
 public class CountersPlusController : MonoBehaviour {
 
@@ -25,6 +25,16 @@ public class CountersPlusController : MonoBehaviour {
 
     private SwingsPerSecond swingsPerSecond;
 
+    private Settings settings;
+    private BeatSaberMap map;
+
+    [Inject]
+    private void Construct(Settings settings, BeatSaberMap map)
+    {
+        this.settings = settings;
+        this.map = map;
+    }
+
     private void Start()
     {
         swingsPerSecond = new SwingsPerSecond(notes, obstacles);
@@ -43,7 +53,7 @@ public class CountersPlusController : MonoBehaviour {
         };
 
         Settings.NotifyBySettingName("CountersPlus", ToggleCounters);
-        ToggleCounters(Settings.Instance.CountersPlus);
+        ToggleCounters(settings.CountersPlus);
         
         StartCoroutine(DelayedUpdate());
         StartCoroutine(CalculateSPS());
@@ -83,7 +93,7 @@ public class CountersPlusController : MonoBehaviour {
                 localizeStringArguments[1] = () => NPSCount;
             }
 
-            float timeMapping = BeatSaberSongContainer.Instance.map._time;
+            float timeMapping = map._time;
             seconds = Mathf.Abs(Mathf.FloorToInt(timeMapping * 60 % 60));
             minutes = Mathf.FloorToInt(timeMapping % 60);
             hours = Mathf.FloorToInt(timeMapping / 60);
@@ -101,7 +111,7 @@ public class CountersPlusController : MonoBehaviour {
 
     private void Update() // i do want to update this every single frame
     {
-        if (Application.isFocused) BeatSaberSongContainer.Instance.map._time += Time.deltaTime / 60; // only tick while application is focused
+        if (Application.isFocused) map._time += Time.deltaTime / 60; // only tick while application is focused
 
         selectionString.gameObject.SetActive(SelectionController.HasSelectedObjects());
         if (SelectionController.HasSelectedObjects()) // selected counter; does not rely on counters+ option

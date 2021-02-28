@@ -3,6 +3,7 @@ using System.Linq;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
 using System.Collections.Generic;
+using Zenject;
 
 public abstract class PlacementController<BO, BOC, BOCC> : MonoBehaviour, CMInput.IPlacementControllersActions, CMInput.ICancelPlacementActions where BO : BeatmapObject where BOC : BeatmapObjectContainer where BOCC : BeatmapObjectContainerCollection
 {
@@ -20,8 +21,7 @@ public abstract class PlacementController<BO, BOC, BOCC> : MonoBehaviour, CMInpu
     [SerializeField] protected RotationCallbackController gridRotation;
     [SerializeField] protected GridChild gridChild;
     [SerializeField] Transform noteGridTransform;
-
-    [HideInInspector] protected virtual bool CanClickAndDrag { get; set; } = true;
+    [SerializeField] protected bool CanClickAndDrag = true;
 
     [HideInInspector] internal virtual float RoundedTime { get; set; } = 0;
 
@@ -52,6 +52,14 @@ public abstract class PlacementController<BO, BOC, BOCC> : MonoBehaviour, CMInpu
 
     internal BO queuedData; //Data that is not yet applied to the BeatmapObjectContainer.
     internal BOC instantiatedContainer;
+
+    protected Settings settings;
+
+    [Inject]
+    private void Construct(Settings settings)
+    {
+        this.settings = settings;
+    }
 
     internal virtual void Start()
     {
@@ -402,6 +410,6 @@ public abstract class PlacementController<BO, BOC, BOCC> : MonoBehaviour, CMInpu
 
     public void OnPrecisionPlacementToggle(InputAction.CallbackContext context)
     {
-        usePrecisionPlacement = context.performed && Settings.Instance.PrecisionPlacementGrid;
+        usePrecisionPlacement = context.performed && settings.PrecisionPlacementGrid;
     }
 }

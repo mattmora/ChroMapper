@@ -6,6 +6,7 @@ public class CoreInstaller : MonoInstaller
 {
     [SerializeField] private GameObject sceneTransitionManagerPrefab;
     [SerializeField] private GameObject persistentUIPrefab;
+    [SerializeField] private Localization loadingMessages;
 
     // Read https://github.com/svermeulen/Extenject documentation for what exactly is going on.
     public override void InstallBindings()
@@ -20,6 +21,8 @@ public class CoreInstaller : MonoInstaller
         Container.BindInterfacesAndSelfTo<Settings>().AsSingle();
         Container.Bind<SceneTransitionManager>().FromComponentInNewPrefab(sceneTransitionManagerPrefab).AsSingle();
         Container.Bind<PersistentUI>().FromComponentInNewPrefab(persistentUIPrefab).AsSingle();
+
+        Container.QueueForInject(loadingMessages);
 
         // Custom Platforms
         Container.BindInterfacesAndSelfTo<CustomPlatformSettings>().WhenInjectedInto<CustomPlatformsLoader>();

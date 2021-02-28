@@ -22,15 +22,14 @@ public class BetterBloomController : MonoBehaviour
 
     private Harmony betterBloomHarmony;
 
-    // Start is called before the first frame update
-    void Start()
+    private void Construct(Settings settings)
     {
         betterBloomHarmony = new Harmony(betterBloomID);
 
-        if (Settings.Instance.HighQualityBloom)
+        if (settings.HighQualityBloom)
         {
             Type ppPass = typeof(PostProcessPass);
-            MethodBase setupBloom = ppPass.GetMethod("SetupBloom", 
+            MethodBase setupBloom = ppPass.GetMethod("SetupBloom",
                 BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public,
                 Type.DefaultBinder,
                 new Type[] { typeof(CommandBuffer), typeof(int), typeof(Material) }, new ParameterModifier[] { });

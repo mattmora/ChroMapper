@@ -9,10 +9,13 @@ public class ValidateDirectorySettingsBinder : SettingsBinder
 
     protected override object UIValueToSettings(object input)
     {
-        string old = Settings.AllFieldInfos[BindedSetting].GetValue(Settings.Instance).ToString();
-        Settings.AllFieldInfos[BindedSetting].SetValue(Settings.Instance, input);
+        string old = Settings.AllFieldInfos[BindedSetting].GetValue(settings).ToString();
+        
+        Settings.AllFieldInfos[BindedSetting].SetValue(settings, input);
+
         errorText.StringReference.TableEntryReference = "validate.good";
-        if (!Settings.ValidateDirectory(ErrorFeedback))
+        
+        if (!settings.ValidateInstallation(ErrorFeedback))
         {
             return old;
         }

@@ -108,3 +108,4 @@ MonoBehaviour:
     type: 3}
   persistentUIPrefab: {fileID: 1763291424475452, guid: f860f4f0bee84f94384a74fa5b9a46c1,
     type: 3}
+  loadingMessages: {fileID: 11400000, guid: 37ffff84fb3e2f044ae857fe30588c36, type: 2}
