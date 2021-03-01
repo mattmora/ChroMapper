@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.Rendering.Universal.Internal;
 using HarmonyLib;
 using UnityEngine.Rendering;
+using Zenject;
 
 /*
  * Woah, woah, woah. Harmony in ChroMapper? What is this shit!?
@@ -20,13 +21,19 @@ public class BetterBloomController : MonoBehaviour
 {
     private const string betterBloomID = "com.caeden117.chromapper.betterbloom";
 
-    private Harmony betterBloomHarmony;
+    private Harmony betterBloomHarmony = new Harmony(betterBloomID);
 
+    private Settings settings;
+
+    [Inject]
     private void Construct(Settings settings)
     {
-        betterBloomHarmony = new Harmony(betterBloomID);
+        this.settings = settings;
+    }
 
-        if (settings.HighQualityBloom)
+    private void Start()
+    {
+        if (settings?.HighQualityBloom ?? true)
         {
             Type ppPass = typeof(PostProcessPass);
             MethodBase setupBloom = ppPass.GetMethod("SetupBloom",

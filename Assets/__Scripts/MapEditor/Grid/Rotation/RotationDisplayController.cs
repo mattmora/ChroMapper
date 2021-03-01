@@ -6,8 +6,14 @@ public class RotationDisplayController : MonoBehaviour
     [SerializeField] private RotationCallbackController rotationCallback;
     [SerializeField] private TextMeshProUGUI display;
 
-    // Start is called before the first frame update
-    void Start()
+    private Settings settings;
+
+    private void Construct(Settings settings)
+    {
+        this.settings = settings;
+    }
+
+    private void Start()
     {
         gameObject.SetActive(rotationCallback.IsActive);
         rotationCallback.RotationChangedEvent += RotationChanged;
@@ -15,17 +21,12 @@ public class RotationDisplayController : MonoBehaviour
 
     private void RotationChanged(bool natural, int rotation)
     {
-        if (Settings.Instance.Reset360DisplayOnCompleteTurn)
-        {
-            display.text = $"{betterModulo(rotation, 360)}°";
-        }
-        else
-        {
-            display.text = $"{rotation}°";
-        }
+        display.text = (settings.Reset360DisplayOnCompleteTurn
+            ? BetterModulo(rotation, 360)
+            : rotation).ToString();
     }
 
-    private int betterModulo(int x, int m) => (x % m + m) % m; //thanks stackoverflow
+    private int BetterModulo(int x, int m) => (x % m + m) % m; //thanks stackoverflow
 
     private void OnDestroy()
     {

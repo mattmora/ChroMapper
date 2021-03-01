@@ -1,12 +1,14 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Zenject;
 
 public class GridRotationController : MonoBehaviour
 {
-    public RotationCallbackController RotationCallback;
+
+    private static readonly int Rotation = Shader.PropertyToID("_Rotation");
+
     [SerializeField] private float rotationChangingTime = 1;
     [SerializeField] private Vector3 rotationPoint = LoadInitialMap.PlatformOffset;
     [SerializeField] private bool rotateTransform = true;
@@ -18,18 +20,31 @@ public class GridRotationController : MonoBehaviour
     private int cachedRotation;
     private List<Renderer> allRotationalRenderers = new List<Renderer>();
 
-    private static readonly int Rotation = Shader.PropertyToID("_Rotation");
+    private Settings settings;
+    private RotationCallbackController rotationCallback;
+
+    [Inject]
+    private void Construct(
+        Settings settings,
+        [InjectOptional] RotationCallbackController rotationCallback = null)
+    {
+        this.rotationCallback = rotationCallback;
+        this.settings = settings;
+
+        if (rotationCallback != null) Init();
+    }
 
     private void Start()
     {
-        if (RotationCallback != null) Init();
+        if (rotationCallback != null) Init();
     }
 
     public void Init()
     {
-        RotationCallback.RotationChangedEvent += RotationChanged;
+        rotationCallback.RotationChangedEvent += RotationChanged;
         Settings.NotifyBySettingName("RotateTrack", UpdateRotateTrack);
         if (!GetComponentsInChildren<Renderer>().Any()) return;
+        allRotationalRenderers.Clear();
         allRotationalRenderers.AddRange(GetComponentsInChildren<Renderer>().Where(x => x.material.HasProperty(Rotation)));
     }
 
@@ -38,8 +53,8 @@ public class GridRotationController : MonoBehaviour
         bool rotating = (bool)obj;
         if (rotating)
         {
-            targetRotation = RotationCallback.Rotation;
-            ChangeRotation(RotationCallback.Rotation);
+            targetRotation = rotationCallback.Rotation;
+            ChangeRotation(rotationCallback.Rotation);
         }
         else
         {
@@ -50,7 +65,7 @@ public class GridRotationController : MonoBehaviour
 
     private void RotationChanged(bool natural, int rotation)
     {
-        if (!RotationCallback.IsActive || !Settings.Instance.RotateTrack) return;
+        if (!rotationCallback.IsActive || !settings.RotateTrack) return;
         cachedRotation = rotation;
         if (!natural)
         {
@@ -62,7 +77,7 @@ public class GridRotationController : MonoBehaviour
 
     private void Update()
     {
-        if (RotationCallback is null || !RotationCallback.IsActive || !Settings.Instance.RotateTrack) return;
+        if (rotationCallback is null || !rotationCallback.IsActive || !settings.RotateTrack) return;
 
         if (Mathf.Abs(targetRotation - cachedRotation) > 0.01f)
         {
@@ -87,7 +102,7 @@ public class GridRotationController : MonoBehaviour
 
     private void OnDestroy()
     {
-        RotationCallback.RotationChangedEvent -= RotationChanged;
+        if (rotationCallback != null) rotationCallback.RotationChangedEvent -= RotationChanged;
         Settings.ClearSettingNotifications("RotateTrack");
     }
 }

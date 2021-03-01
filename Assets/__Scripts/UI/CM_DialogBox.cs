@@ -15,7 +15,6 @@ public class CM_DialogBox : MonoBehaviour
     [SerializeField] private TMP_FontAsset defaultFont;
     private Action<int> resultAction;
 
-
     private IEnumerable<Type> disabledActionMaps = typeof(CMInput).GetNestedTypes().Where(t => t.IsInterface && t != typeof(CMInput.IUtilsActions) && t != typeof(CMInput.IMenusExtendedActions));
 
     private void Start()
@@ -25,7 +24,7 @@ public class CM_DialogBox : MonoBehaviour
 
     public bool IsEnabled => group.alpha == 1;
 
-    public void SetParams(string message, Action<int> result,
+    public void SetParams(Settings settings, string message, Action<int> result,
         string[] buttonText, TMP_FontAsset[] buttonAsset)
     {
         if (IsEnabled)
@@ -43,7 +42,7 @@ public class CM_DialogBox : MonoBehaviour
             SetupButton(
                 i,
                 buttonText[i],
-                Settings.Instance.DarkTheme || buttonAsset == null ? defaultFont : buttonAsset[i],
+                settings.DarkTheme || buttonAsset == null ? defaultFont : buttonAsset[i],
                 buttonText.Length > 3 ? 80 : 100
             );
         }

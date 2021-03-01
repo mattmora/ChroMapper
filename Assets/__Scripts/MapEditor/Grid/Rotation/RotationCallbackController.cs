@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Zenject;
 
 public class RotationCallbackController : MonoBehaviour
 {
@@ -9,7 +10,7 @@ public class RotationCallbackController : MonoBehaviour
     private readonly string[] enabledCharacteristics = { "360Degree", "90Degree", "Lawless" };
 
     [SerializeField] private BeatmapObjectCallbackController interfaceCallback;
-    public AudioTimeSyncController atsc;
+    [SerializeField] private AudioTimeSyncController atsc;
     [SerializeField] private EventsContainer events;
 
     public Action<bool, int> RotationChangedEvent; //Natural, degrees
@@ -17,17 +18,32 @@ public class RotationCallbackController : MonoBehaviour
 
     public int Rotation { get; private set; }
 
+    private Settings settings;
+    private PersistentUI persistentUI;
+    private BeatSaberSong.DifficultyBeatmap diff;
+
+    [Inject]
+    private void Construct(Settings settings, PersistentUI persistentUI, BeatSaberSong.DifficultyBeatmap diff)
+    {
+        this.settings = settings;
+        this.persistentUI = persistentUI;
+        this.diff = diff;
+    }
+
     // Start is called before the first frame update
     internal void Start()
     {
-        BeatSaberSong.DifficultyBeatmapSet set = BeatSaberSongContainer.Instance.difficultyData.parentBeatmapSet;
+        var set = diff.parentBeatmapSet;
+        
         IsActive = enabledCharacteristics.Contains(set.beatmapCharacteristicName);
-        if (IsActive && Settings.Instance.Reminder_Loading360Levels)
+        
+        if (IsActive && settings.Reminder_Loading360Levels)
         {
-            PersistentUI.Instance.ShowDialogBox(
+            persistentUI.ShowDialogBox(
                 "PersistentUI", "360warning"
                 , Handle360LevelReminder, PersistentUI.DialogBoxPresetType.OkIgnore);
         }
+
         interfaceCallback.EventPassedThreshold += EventPassedThreshold;
         atsc.OnPlayToggle += PlayToggle;
         atsc.OnTimeChanged += OnTimeChanged;
@@ -36,13 +52,13 @@ public class RotationCallbackController : MonoBehaviour
 
     private void UpdateRotateTrack(object obj)
     {
-        if (Settings.Instance.RotateTrack) return;
+        if (settings.RotateTrack) return;
         RotationChangedEvent?.Invoke(false, 0);
     }
 
     private void Handle360LevelReminder(int res)
     {
-        Settings.Instance.Reminder_Loading360Levels = res == 0;
+        settings.Reminder_Loading360Levels = res == 0;
     }
 
     private void OnTimeChanged()

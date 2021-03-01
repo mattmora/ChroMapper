@@ -502,8 +502,6 @@ public class SongInfoEditUI : MenuBase
         {
             var diffData = difficultySelect.CurrentlySelectedDifficulty;
             var map = song.GetMapFromDifficultyBeatmap(diffData);
-            
-            PersistentUI.UpdateBackground(song);
 
             Debug.Log("Transitioning...");
             if (map != null)

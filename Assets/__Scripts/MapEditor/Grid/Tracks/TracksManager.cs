@@ -1,11 +1,12 @@
-﻿using System.Linq;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
-using System;
+using Zenject;
 
 public class TracksManager : MonoBehaviour
 {
+    public float LowestRotation { get; private set; } = 0;
+    public float HighestRotation { get; private set; } = 0;
+
     [SerializeField] private GameObject TrackPrefab;
     [SerializeField] private Transform TracksParent;
     [SerializeField] private EventsContainer events;
@@ -15,11 +16,15 @@ public class TracksManager : MonoBehaviour
     private List<BeatmapObjectContainerCollection> objectContainerCollections = new List<BeatmapObjectContainerCollection>();
     private float position = 0;
 
-    public float LowestRotation { get; private set; } = 0;
-    public float HighestRotation { get; private set; } = 0;
+    private Settings settings;
 
-    // Start is called before the first frame update
-    void Start()
+    [Inject]
+    private void Construct(Settings settings)
+    {
+        this.settings = settings;
+    }
+
+    private void Start()
     {
         objectContainerCollections.Add(BeatmapObjectContainerCollection.GetCollectionForType(BeatmapObject.Type.NOTE));
         objectContainerCollections.Add(BeatmapObjectContainerCollection.GetCollectionForType(BeatmapObject.Type.OBSTACLE ));
@@ -82,7 +87,8 @@ public class TracksManager : MonoBehaviour
 
     public Track GetTrackAtTime(float beatInSongBPM)
     {
-        if (!Settings.Instance.RotateTrack) return CreateTrack(0);
+        if (!settings.RotateTrack) return CreateTrack(0);
+        
         float rotation = 0;
         foreach (MapEvent rotationEvent in events.AllRotationEvents)
         {
@@ -112,13 +118,7 @@ public class TracksManager : MonoBehaviour
 
     private float FloatModulo(float x, float m)
     {
-        //float largestFactor = Mathf.Floor(x / m); //Same functionality as x % m but with floats cuz fuck you
-        //float regularModulo = x - largestFactor * m;
-
-        //float moduloAddBase = regularModulo + m;
-        //float betterLargestFactor = Mathf.Floor(moduloAddBase / m);
-        //float betterModulo = moduloAddBase - betterLargestFactor * m;
-        return ((x - (Mathf.Floor(x / m)) * m) + m) - Mathf.Floor(((x - (Mathf.Floor(x / m)) * m) + m) / m) * m;
+        return x - Mathf.Floor(x / m) * m + m - Mathf.Floor((x - Mathf.Floor(x / m) * m + m) / m) * m;
     }
 
     public void UpdatePosition(float position) //Take our position from AudioTimeSyncController and broadcast that to every track.

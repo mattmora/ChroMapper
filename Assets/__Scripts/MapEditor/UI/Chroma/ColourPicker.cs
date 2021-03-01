@@ -1,5 +1,6 @@
 ﻿using UnityEngine.UI;
 using UnityEngine;
+using Zenject;
 
 public class ColourPicker : MonoBehaviour
 {
@@ -9,12 +10,20 @@ public class ColourPicker : MonoBehaviour
     [SerializeField] private Toggle toggle;
     [SerializeField] private Toggle placeChromaToggle;
 
+    private Settings settings;
+
+    [Inject]
+    private void Construct(Settings settings)
+    {
+        this.settings = settings;
+    }
+
     // Start is called before the first frame update
     private void Start()
     {
         SelectionController.ObjectWasSelectedEvent += SelectedObject;
-        toggle.isOn = Settings.Instance.PickColorFromChromaEvents;
-        placeChromaToggle.isOn = Settings.Instance.PlaceChromaColor;
+        toggle.isOn = settings.PickColorFromChromaEvents;
+        placeChromaToggle.isOn = settings.PlaceChromaColor;
     }
 
     private void OnDestroy()
@@ -24,12 +33,12 @@ public class ColourPicker : MonoBehaviour
 
     public void UpdateColourPicker(bool enabled)
     {
-        Settings.Instance.PickColorFromChromaEvents = enabled;
+        settings.PickColorFromChromaEvents = enabled;
     }
 
     private void SelectedObject(BeatmapObject obj)
     {
-        if (!Settings.Instance.PickColorFromChromaEvents || !dropdown.Visible) return;
+        if (!settings.PickColorFromChromaEvents || !dropdown.Visible) return;
         if (obj._customData?.HasKey("_color") ?? false)
         {
             picker.CurrentColor = obj._customData["_color"];

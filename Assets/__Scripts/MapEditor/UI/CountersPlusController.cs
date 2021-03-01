@@ -75,7 +75,7 @@ public class CountersPlusController : MonoBehaviour {
         {
             yield return new WaitForSeconds(1); //I wouldn't want to update this every single frame.
 
-            if (!Settings.Instance.CountersPlus)
+            if (!settings.CountersPlus)
                 continue;
 
             if (NotesSelected > 0)

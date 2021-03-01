@@ -4,35 +4,46 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Zenject;
 
 public class PauseManager : MonoBehaviour, CMInput.IPauseMenuActions
 {
+    public static bool IsPaused;
+
     [SerializeField] private CanvasGroup loadingCanvasGroup;
     [SerializeField] private AnimationCurve fadeInCurve;
     [SerializeField] private AnimationCurve fadeOutCurve;
     [SerializeField] private UIMode uiMode;
+    [SerializeField] private AutoSaveController saveController;
+
     private UIModeType previousUIModeType = UIModeType.NORMAL;
     private PlatformDescriptor platform;
-    [SerializeField] private AutoSaveController saveController;
 
     private IEnumerable<Type> disabledActionMaps = typeof(CMInput).GetNestedTypes().Where(t => t.IsInterface && t != typeof(CMInput.IUtilsActions) && t != typeof(CMInput.IPauseMenuActions));
 
-    public static bool IsPaused;
+    private Settings settings;
+    private PersistentUI persistentUI;
+    private SceneTransitionManager sceneTransitionManager;
+    private BeatSaberSong song;
 
-    void Start()
+    [Inject]
+    private void Construct(Settings settings, PersistentUI persistentUI,
+        SceneTransitionManager sceneTransitionManager, BeatSaberSong song)
+    {
+        this.settings = settings;
+        this.persistentUI = persistentUI;
+        this.sceneTransitionManager = sceneTransitionManager;
+        this.song = song;
+    }
+
+    private void Start()
     {
         OptionsController.OptionsLoadedEvent += OptionsLoaded;
-        LoadInitialMap.PlatformLoadedEvent += PlatformLoaded;
     }
 
     private void OptionsLoaded()
     {
         if (IsPaused) TogglePause();
-    }
-
-    void PlatformLoaded(PlatformDescriptor descriptor)
-    {
-        platform = descriptor;
     }
 
     public void TogglePause()
@@ -57,7 +68,6 @@ public class PauseManager : MonoBehaviour, CMInput.IPauseMenuActions
     void OnDestroy()
     {
         IsPaused = false;
-        LoadInitialMap.PlatformLoadedEvent -= PlatformLoaded;
         OptionsController.OptionsLoadedEvent -= OptionsLoaded;
     }
 
@@ -69,13 +79,12 @@ public class PauseManager : MonoBehaviour, CMInput.IPauseMenuActions
             ReturnToSongEditScreen();
         }
         else
-            PersistentUI.Instance.ShowDialogBox("Mapper", "save", SaveAndExitResult, PersistentUI.DialogBoxPresetType.YesNoCancel);
+            persistentUI.ShowDialogBox("Mapper", "save", SaveAndExitResult, PersistentUI.DialogBoxPresetType.YesNoCancel);
     }
 
     public void CloseCM()
     {
-        PersistentUI.Instance.ShowDialogBox("Mapper", "quit.save",
-            SaveAndQuitCMResult, PersistentUI.DialogBoxPresetType.YesNoCancel);
+        persistentUI.ShowDialogBox("Mapper", "quit.save", SaveAndQuitCMResult, PersistentUI.DialogBoxPresetType.YesNoCancel);
     }
 
     private void SaveAndExitResult(int result)
@@ -118,7 +127,7 @@ public class PauseManager : MonoBehaviour, CMInput.IPauseMenuActions
 
     public Coroutine FadeInLoadingScreen(CanvasGroup group)
     {
-        return StartCoroutine(FadeInLoadingScreen(Settings.Instance.InstantEscapeMenuTransitions ? 999f : 2f, loadingCanvasGroup));
+        return StartCoroutine(FadeInLoadingScreen(settings.InstantEscapeMenuTransitions ? 999f : 2f, loadingCanvasGroup));
     }
 
     IEnumerator FadeInLoadingScreen(float rate, CanvasGroup group)
@@ -137,7 +146,7 @@ public class PauseManager : MonoBehaviour, CMInput.IPauseMenuActions
 
     public Coroutine FadeOutLoadingScreen(CanvasGroup group)
     {
-        return StartCoroutine(FadeOutLoadingScreen(Settings.Instance.InstantEscapeMenuTransitions ? 999f : 2f, group));
+        return StartCoroutine(FadeOutLoadingScreen(settings.InstantEscapeMenuTransitions ? 999f : 2f, group));
     }
 
     IEnumerator FadeOutLoadingScreen(float rate, CanvasGroup group)
@@ -162,8 +171,6 @@ public class PauseManager : MonoBehaviour, CMInput.IPauseMenuActions
 
     private void ReturnToSongEditScreen()
     {
-        // TODO replace with injected variables
-        SceneTransitionManager.Instance.LoadScene("02_SongEditMenu")
-            .WithDataInjectedEarly(BeatSaberSongContainer.Instance.song);
+        sceneTransitionManager.LoadScene("02_SongEditMenu").WithDataInjectedEarly(song);
     }
 }

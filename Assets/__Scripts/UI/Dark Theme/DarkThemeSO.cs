@@ -1,8 +1,9 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using Zenject;
 
-
+// TODO: Is this obsolete (or rather, could this be made obsolete)
 [CreateAssetMenu(fileName = "DarkThemeSO", menuName = "Map/Dark Theme SO")]
 public class DarkThemeSO : ScriptableObject
 {
@@ -11,9 +12,17 @@ public class DarkThemeSO : ScriptableObject
     [SerializeField] private Font BeonUnityReplacement;
     [SerializeField] private Font TekoUnityReplacement;
 
+    private Settings settings;
+
+    [Inject]
+    private void Construct(Settings settings)
+    {
+        this.settings = settings;
+    }
+
     public void DarkThemeifyUI()
     {
-        if (!Settings.Instance.DarkTheme) return;
+        if (!settings.DarkTheme) return;
         foreach (TextMeshProUGUI jankCodeMate in Resources.FindObjectsOfTypeAll<TextMeshProUGUI>()) {
             if (jankCodeMate.font.name.Contains("Beon")) jankCodeMate.font = BeonReplacement;
             if (jankCodeMate.font.name.Contains("Teko")) jankCodeMate.font = TekoReplacement;

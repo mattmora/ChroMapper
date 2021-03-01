@@ -79,8 +79,9 @@ public class EditorInstaller : MonoInstaller
             platform = Instantiate(platform, LoadInitialMap.PlatformOffset, Quaternion.identity);
         }
 
-        Container.QueueForInject(platform.GetComponent<PlatformDescriptor>());
-        Container.Bind<PlatformDescriptor>().FromComponentOn(platform).AsSingle();
+        var descriptor = Container.InjectGameObjectForComponent<PlatformDescriptor>(platform);
+        
+        Container.BindInstance(descriptor).AsSingle();
 
         // Callback controllers
         Container.BindInstance(nameof(Settings.Offset_Spawning)).WhenInjectedIntoInstance(spawnCallback);

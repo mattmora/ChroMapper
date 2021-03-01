@@ -11,6 +11,14 @@ public class CustomPlatformSettings : IInitializable
 {
     public Dictionary<string, PlatformInfo> CustomPlatformsDictionary = new Dictionary<string, PlatformInfo>();
 
+    private Settings settings;
+
+    [Inject]
+    private void Construct(Settings settings)
+    {
+        this.settings = settings;
+    }
+
     public void Initialize()
     {
         LoadCustomEnvironments();
@@ -30,7 +38,7 @@ public class CustomPlatformSettings : IInitializable
 
     private void LoadCustomEnvironments()
     {
-        string beatSaberCustomPlatforms = Settings.Instance.CustomPlatformsFolder;
+        string beatSaberCustomPlatforms = settings.CustomPlatformsFolder;
 
         if (Directory.Exists(beatSaberCustomPlatforms))
         {

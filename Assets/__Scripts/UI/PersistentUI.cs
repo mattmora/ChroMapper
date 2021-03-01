@@ -148,11 +148,6 @@ public class PersistentUI : MonoBehaviour {
     }
 
     #region loading
-    public static void UpdateBackground(BeatSaberSong song)
-    {
-        if (Instance.editorLoadingBackground.gameObject.activeSelf == false) Instance.editorLoadingBackground.gameObject.SetActive(true);
-        Instance.editorLoadingBackground.sprite = Instance.editorImageList.GetBGSprite(song);
-    }
 
     public Coroutine FadeInLoadingScreen() {
         loadingTip.text = localization.GetRandomLoadingMessage();
@@ -319,7 +314,7 @@ public class PersistentUI : MonoBehaviour {
            TMP_FontAsset b0a = null, TMP_FontAsset b1a = null, TMP_FontAsset b2a = null)
     {
         Debug.LogWarning($"Dialog box not localized '{message}'");
-        dialogBox.SetParams(message, result, new string[] { b0, b1, b2 }, new TMP_FontAsset[] { b0a, b1a, b2a });
+        dialogBox.SetParams(settings, message, result, new string[] { b0, b1, b2 }, new TMP_FontAsset[] { b0a, b1a, b2a });
     }
 
     private IEnumerator DoShowDialogBox(AsyncOperationHandle<string> message, Action<int> result, List<AsyncOperationHandle<string>> buttonText,
@@ -340,7 +335,7 @@ public class PersistentUI : MonoBehaviour {
         }
         var buttonTextArr = buttonText.Select(it => it.Result).ToArray();
 
-        dialogBox.SetParams(message, result, buttonTextArr, ba);
+        dialogBox.SetParams(settings, message, result, buttonTextArr, ba);
         DialogBox_Loading = false;
     }
 

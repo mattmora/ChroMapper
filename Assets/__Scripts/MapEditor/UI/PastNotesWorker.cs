@@ -2,6 +2,7 @@
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
+using Zenject;
 
 public class PastNotesWorker : MonoBehaviour
 {
@@ -22,10 +23,18 @@ public class PastNotesWorker : MonoBehaviour
     private Dictionary<int, Dictionary<GameObject, Image>> InstantiatedNotes = new Dictionary<int, Dictionary<GameObject, Image>>();
     private List<BeatmapObject> lastGroup = new List<BeatmapObject>();
 
+    private Settings settings;
+
+    [Inject]
+    private void Construct(Settings settings)
+    {
+        this.settings = settings;
+    }
+
     private void Start()
     {
         _canvas = GetComponent<Canvas>();
-        scale = Settings.Instance.PastNotesGridScale;
+        scale = settings.PastNotesGridScale;
         _canvas.enabled = scale != 0f;
         transform.localScale = Vector3.one * (scale + 0.25f);
         if (scale == 0f) return;

@@ -34,19 +34,16 @@ public class PlatformDescriptor : MonoBehaviour {
     private Dictionary<LightsManager, Gradient> ChromaGradients = new Dictionary<LightsManager, Gradient>();
 
     private BeatmapObjectCallbackController callbackController;
-    private RotationCallbackController rotationCallback;
     private AudioTimeSyncController atsc;
     private Settings settings;
 
     [Inject]
     private void Construct([InjectOptional] Settings settings,
         [InjectOptional] AudioTimeSyncController atsc,
-        [InjectOptional(Id = "GRID")] BeatmapObjectCallbackController callbackController = null,
-        [InjectOptional] RotationCallbackController rotationCallback = null)
+        [InjectOptional(Id = "GRID")] BeatmapObjectCallbackController callbackController = null)
     {
         this.atsc = atsc;
         this.callbackController = callbackController;
-        this.rotationCallback = rotationCallback;
         this.settings = settings;
     }
 
@@ -57,12 +54,6 @@ public class PlatformDescriptor : MonoBehaviour {
 
     private void Start()
     {
-        if (RotationController != null)
-        {
-            RotationController.RotationCallback = rotationCallback;
-            RotationController.Init();
-        }
-
         if (callbackController != null)
         {
             callbackController.EventPassedThreshold += EventPassed;

@@ -16,33 +16,16 @@ public class ImageList : ScriptableObject {
     public Sprite BigMirrorV2Platform;
     public Sprite FailsafeBackground;
     
-    public Sprite GetRandomSprite()
-    {
-        return DarkSprite;
-    }
+    public Sprite GetRandomSprite() => DarkSprite;
 
-    public Sprite GetBGSprite(BeatSaberSong song)
-    {
-        if (Settings.Instance.DarkTheme) return DarkSprite;
-        if (song.customData != null)
-        {
-            if (song.customData && !string.IsNullOrEmpty(song.customData["_customEnvironment"]))
-            {
-                switch (song.customData["_customEnvironment"].Value)
-                {
-                    case "Vapor Frame": return VaporFramePlatform;
-                    case "Big Mirror V2": return BigMirrorV2Platform;
-                }
-            }
-        }
-        switch (song.environmentName)
-        {
-            case "DefaultEnvironment": return DefaultPlatform;
-            case "TriangleEnvironment": return TrianglePlatform;
-            case "BigMirrorEnvironment": return BigMirrorPlatform;
-            case "NiceEnvironment": return NicePlatform;
-            default: return FailsafeBackground; //In case someone does a fucky wucky
-        }
-    }
-
+    /* I've decided to remove random BG functionality, because I don't think it matches well with CM's new UI "language"
+     * 
+     * The UI has matured from being fun with colors all around, to being more serious and professional,
+     * designed by people who are actually competent with UI work, unlike myself.
+     * 
+     * As such, I felt that the random rainbow Chroma backgrounds that served as backgrounds, as well as the
+     * environment-specific loading transitions, to conflict with the new direction of CM's UI.
+     * 
+     * Sorry if this dissapoints anyone, especially Aalto.
+     */
 }

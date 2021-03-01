@@ -15,6 +15,7 @@ public class PauseToggleLights : MonoBehaviour
     private List<MapEvent> lastChromaEvents = new List<MapEvent>();
 
     private PlatformDescriptor descriptor;
+    private Settings settings;
 
     private class LastEvents
     {
@@ -24,8 +25,9 @@ public class PauseToggleLights : MonoBehaviour
     }
 
     [Inject]
-    private void Construct(PlatformDescriptor platform)
+    private void Construct(Settings settings, PlatformDescriptor platform)
     {
+        this.settings = settings;
         descriptor = platform;
     }
 
@@ -128,7 +130,7 @@ public class PauseToggleLights : MonoBehaviour
                     descriptor.EventPassed(false, 0, propEvent.Value);
                 }
 
-                if (!regular.IsUtilityEvent && Settings.Instance.EmulateChromaLite)
+                if (!regular.IsUtilityEvent && settings.EmulateChromaLite)
                 {
                     descriptor.EventPassed(false, 0, chroma ?? new MapEvent(0, i, ColourManager.RGB_RESET));
                 }

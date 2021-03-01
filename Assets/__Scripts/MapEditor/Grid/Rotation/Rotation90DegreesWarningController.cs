@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using TMPro;
+using Zenject;
 
 public class Rotation90DegreesWarningController : MonoBehaviour
 {
@@ -7,10 +8,17 @@ public class Rotation90DegreesWarningController : MonoBehaviour
     [SerializeField] private RotationCallbackController rotationCallback;
     [SerializeField] private TextMeshProUGUI rotationDisplay;
 
-    // Start is called before the first frame update
+    private BeatSaberSong.DifficultyBeatmap diff;
+
+    [Inject]
+    private void Construct(BeatSaberSong.DifficultyBeatmap diff)
+    {
+        this.diff = diff;
+    }
+
     private void Start()
     {
-        if (BeatSaberSongContainer.Instance.difficultyData.parentBeatmapSet.beatmapCharacteristicName == "90Degree")
+        if (diff.parentBeatmapSet.beatmapCharacteristicName == "90Degree")
         {
             rotationCallback.RotationChangedEvent += RotationChangedEvent;
         }
@@ -23,7 +31,7 @@ public class Rotation90DegreesWarningController : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (BeatSaberSongContainer.Instance.difficultyData.parentBeatmapSet.beatmapCharacteristicName == "90Degree")
+        if (diff.parentBeatmapSet.beatmapCharacteristicName == "90Degree")
         {
             rotationCallback.RotationChangedEvent -= RotationChangedEvent;
         }

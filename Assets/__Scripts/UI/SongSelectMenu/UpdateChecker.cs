@@ -5,19 +5,25 @@ using System.IO;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
+using Zenject;
 
-public class UpdateChecker : MonoBehaviour {
-
+public class UpdateChecker : MonoBehaviour
+{
     private static DateTime lastCheck = default;
     private static int latestVersion = -1;
+    
+    private readonly string ParentDir = Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory).FullName;
+
+    [SerializeField] private GameObject showWhenUpdateIsAvailable;
 
     private ProcessStartInfo startInfo;
 
-    private readonly string ParentDir = Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory).FullName;
-    public GameObject showWhenUpdateIsAvailable;
+    private Settings settings;
 
-    private void Awake()
+    [Inject]
+    private void Construct(Settings settings)
     {
+        this.settings = settings;
         StartCoroutine(CheckForUpdates());
     }
 
@@ -56,7 +62,7 @@ public class UpdateChecker : MonoBehaviour {
             yield break;
         }
 
-        var channel = Settings.Instance.ReleaseChannel == 1 ? "dev" : "stable";
+        var channel = settings.ReleaseChannel == 1 ? "dev" : "stable";
 
         int ourVersion = int.Parse(Application.version.Split('.').Last());
 
@@ -64,7 +70,7 @@ public class UpdateChecker : MonoBehaviour {
         // Limit checks to once per hour
         if (ourVersion != 0 && (latestVersion < 0 || DateTime.Now.Subtract(lastCheck).TotalHours > 1))
         {
-            StartCoroutine(GetLatestVersion(Settings.Instance.ReleaseServer, channel, VersionCheckCB));
+            StartCoroutine(GetLatestVersion(settings.ReleaseServer, channel, VersionCheckCB));
         }
         else
         {

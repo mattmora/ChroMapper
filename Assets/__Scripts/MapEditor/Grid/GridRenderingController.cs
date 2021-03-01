@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Zenject;
 
 public class GridRenderingController : MonoBehaviour
 {
@@ -17,6 +18,14 @@ public class GridRenderingController : MonoBehaviour
     private static readonly int GridSpacing = Shader.PropertyToID("_GridSpacing");
     private static readonly int MainAlpha = Shader.PropertyToID("_BaseAlpha");
     private static readonly float MainAlphaDefault = 0.1f;
+
+    private Settings settings;
+
+    [Inject]
+    private void Construct(Settings settings)
+    {
+        this.settings = settings;
+    }
 
     private void Awake()
     {
@@ -78,9 +87,11 @@ public class GridRenderingController : MonoBehaviour
 
     private void UpdateHighContrastGrids(object _ = null)
     {
+        var alpha = settings.HighContrastGrids ? 0 : MainAlphaDefault;
+
         foreach (Renderer g in gridsToDisableForHighContrast)
         {
-            g.material.SetFloat(MainAlpha, Settings.Instance.HighContrastGrids ? 0 : MainAlphaDefault);
+            g.material.SetFloat(MainAlpha, alpha);
         }
     }
 
