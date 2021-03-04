@@ -17,20 +17,21 @@ public class PauseManager : MonoBehaviour, CMInput.IPauseMenuActions
     [SerializeField] private AutoSaveController saveController;
 
     private UIModeType previousUIModeType = UIModeType.NORMAL;
-    private PlatformDescriptor platform;
 
     private IEnumerable<Type> disabledActionMaps = typeof(CMInput).GetNestedTypes().Where(t => t.IsInterface && t != typeof(CMInput.IUtilsActions) && t != typeof(CMInput.IPauseMenuActions));
 
     private Settings settings;
+    private PlatformDescriptor platform;
     private PersistentUI persistentUI;
     private SceneTransitionManager sceneTransitionManager;
     private BeatSaberSong song;
 
     [Inject]
-    private void Construct(Settings settings, PersistentUI persistentUI,
+    private void Construct(Settings settings, PlatformDescriptor platform, PersistentUI persistentUI,
         SceneTransitionManager sceneTransitionManager, BeatSaberSong song)
     {
         this.settings = settings;
+        this.platform = platform;
         this.persistentUI = persistentUI;
         this.sceneTransitionManager = sceneTransitionManager;
         this.song = song;

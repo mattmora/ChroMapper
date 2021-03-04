@@ -1,5 +1,6 @@
 ﻿using TMPro;
 using UnityEngine;
+using Zenject;
 
 public class RotationDisplayController : MonoBehaviour
 {
@@ -8,6 +9,7 @@ public class RotationDisplayController : MonoBehaviour
 
     private Settings settings;
 
+    [Inject]
     private void Construct(Settings settings)
     {
         this.settings = settings;

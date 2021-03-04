@@ -235,8 +235,6 @@ public class BeatSaberSong
     public JSONNode customData;
     public Editors editors = new Editors(null);
 
-    private bool isWIPMap = false;
-
     public List<DifficultyBeatmapSet> difficultyBeatmapSets = new List<DifficultyBeatmapSet>();
 
     public List<string> warnings = new List<string>();
@@ -253,9 +251,9 @@ public class BeatSaberSong
 
     public BeatSaberSong(string directory, string name)
     {
-        this.directory = Path.Combine(directory, name);
-        json = null;
         songName = name;
+        this.directory = Path.Combine(directory, cleanSongName);
+        json = null;
         TouchEditorValues();
         editors = new Editors(null);
     }

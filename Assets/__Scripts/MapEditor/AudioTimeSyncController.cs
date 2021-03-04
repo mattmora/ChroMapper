@@ -83,6 +83,10 @@ public class AudioTimeSyncController : MonoBehaviour, CMInput.IPlaybackActions, 
         clip = loadedSong;
         this.song = song;
         this.settings = settings;
+
+        songAudioSource.clip = clip;
+        songAudioSource.volume = settings.SongVolume;
+        waveformSource.clip = clip;
     }
 
     // Use this for initialization
@@ -95,9 +99,6 @@ public class AudioTimeSyncController : MonoBehaviour, CMInput.IPlaybackActions, 
             offsetBeat = currentBeat;
             gridStartPosition = currentBeat * EditorScaleController.EditorScale;
             IsPlaying = false;
-            songAudioSource.clip = clip;
-            songAudioSource.volume = settings.SongVolume;
-            waveformSource.clip = clip;
             UpdateMovables();
 
             if (Settings.NonPersistentSettings.ContainsKey(PrecisionSnapName))

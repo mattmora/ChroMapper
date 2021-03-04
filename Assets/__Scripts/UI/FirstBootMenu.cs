@@ -339,11 +339,15 @@ public class FirstBootMenu : MonoBehaviour
 
     public void OpenFolderBrowser()
     {
-        var paths = StandaloneFileBrowser.OpenFolderPanel("Installation Directory", "", false);
-        var installation = paths[0];
-        directoryField.text = installation;
-        settings.BeatSaberInstallation = Settings.ConvertToDirectory(installation);
-        validation.SetValidationState(true, settings.ValidateInstallation(ErrorFeedback));
+        StandaloneFileBrowser.OpenFolderPanelAsync("Installation Directory", "", false, paths =>
+        {
+            if (paths.Length <= 0) return;
+            
+            var installation = paths[0];
+            directoryField.text = installation;
+            settings.BeatSaberInstallation = Settings.ConvertToDirectory(installation);
+            validation.SetValidationState(true, settings.ValidateInstallation(ErrorFeedback));
+        });
     }
 
     public void ValidateQuiet()
