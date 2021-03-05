@@ -26,6 +26,7 @@ public class EventsContainer : BeatmapObjectContainerCollection, CMInput.IEventG
     public List<MapEvent> AllBoostEvents = new List<MapEvent>();
 
     private PlatformDescriptor platformDescriptor;
+    private BeatmapEventContainer.Pool pool;
 
     public enum PropMode
     {
@@ -61,9 +62,10 @@ public class EventsContainer : BeatmapObjectContainerCollection, CMInput.IEventG
     private PropMode propagationEditing = PropMode.Off;
 
     [Inject]
-    private void Construct(PlatformDescriptor descriptor)
+    private void Construct(PlatformDescriptor descriptor, BeatmapEventContainer.Pool pool)
     {
         platformDescriptor = descriptor;
+        this.pool = pool;
     }
 
     private void Start()
@@ -156,18 +158,14 @@ public class EventsContainer : BeatmapObjectContainerCollection, CMInput.IEventG
 
     void SpawnCallback(bool initial, int index, BeatmapObject objectData)
     {
-        if (!LoadedContainers.ContainsKey(objectData))
-        {
-            CreateContainerFromPool(objectData);
-        }
+        CreateContainerFromPool(objectData);
     }
 
     //We don't need to check index as that's already done further up the chain
     void DespawnCallback(bool initial, int index, BeatmapObject objectData)
     {
-        if (LoadedContainers.ContainsKey(objectData))
+        if (objectData is MapEvent e && objectData.HasAttachedContainer)
         {
-            MapEvent e = objectData as MapEvent;
             if (e._lightGradient != null && Settings.VisualizeChromaGradients && isActiveAndEnabled)
             {
                 StartCoroutine(WaitForGradientThenRecycle(e));
@@ -274,8 +272,25 @@ public class EventsContainer : BeatmapObjectContainerCollection, CMInput.IEventG
     protected override void UpdateContainerData(BeatmapObjectContainer con, BeatmapObject obj)
     {
         eventAppearanceSO.SetEventAppearance(con as BeatmapEventContainer, true,
-            AllBoostEvents.Where(x => x._time <= obj._time).LastOrDefault()?._value == 1);
+            AllBoostEvents.FindLast(x => x._time <= obj._time)?._value == 1);
         MapEvent e = obj as MapEvent;
         if (PropagationEditing != PropMode.Off && e._type != EventTypeToPropagate) con.SafeSetActive(false);
+    }
+
+    protected override void CreateContainerFromPool(BeatmapObject obj)
+    {
+        if (obj.HasAttachedContainer) return;
+        var dequeued = pool.Spawn(obj as MapEvent);
+        UpdateContainerData(dequeued, obj);
+        dequeued.OutlineVisible = SelectionController.IsObjectSelected(obj);
+        PluginLoader.BroadcastEvent<ObjectLoadedAttribute, BeatmapObjectContainer>(dequeued);
+        OnContainerSpawn(dequeued, obj);
+    }
+
+    protected override void RecycleContainer(BeatmapObject obj)
+    {
+        if (!obj.HasAttachedContainer) return;
+        var container = pool.Despawn(obj as MapEvent);
+        OnContainerDespawn(container, obj);
     }
 }

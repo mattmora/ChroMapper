@@ -188,7 +188,7 @@ public abstract class BeatmapObjectContainerCollection : MonoBehaviour
     /// Dequeues a container from the pool and attaches it to a provided <see cref="BeatmapObject"/>
     /// </summary>
     /// <param name="obj">Object to store within the container.</param>
-    protected void CreateContainerFromPool(BeatmapObject obj)
+    protected virtual void CreateContainerFromPool(BeatmapObject obj)
     {
         if (obj.HasAttachedContainer) return;
         //Debug.Log($"Creating container with hash code {obj.GetHashCode()}");
@@ -213,7 +213,7 @@ public abstract class BeatmapObjectContainerCollection : MonoBehaviour
     /// Recycles the container belonging to a provided <see cref="BeatmapObject"/>, putting it back into the container pool for future use.
     /// </summary>
     /// <param name="obj">Object whose container will be recycled.</param>
-    protected void RecycleContainer(BeatmapObject obj)
+    protected virtual void RecycleContainer(BeatmapObject obj)
     {
         if (!obj.HasAttachedContainer) return;
         //Debug.Log($"Recycling container with hash code {obj.GetHashCode()}");

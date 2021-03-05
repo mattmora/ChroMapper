@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Zenject;
 
 public class BeatmapEventContainer : BeatmapObjectContainer {
 
@@ -9,7 +10,6 @@ public class BeatmapEventContainer : BeatmapObjectContainer {
     public override BeatmapObject objectData { get => eventData; set => eventData = (MapEvent)value; }
 
     public MapEvent eventData;
-    public EventsContainer eventsContainer;
 
     public bool UsePyramidModel
     {
@@ -21,7 +21,6 @@ public class BeatmapEventContainer : BeatmapObjectContainer {
         }
     }
 
-    [SerializeField] private EventAppearanceSO eventAppearance;
     [SerializeField] private List<Renderer> eventRenderer;
     [SerializeField] private TracksManager tracksManager;
     [SerializeField] private TextMesh valueDisplay;
@@ -31,16 +30,29 @@ public class BeatmapEventContainer : BeatmapObjectContainer {
     private List<Material> mat;
     private float oldAlpha = -1;
 
-    [SerializeField] private CreateEventTypeLabels labels;
 
     /// <summary>
     /// Different modes to sort events in the editor.
     /// </summary>
     public static int ModifyTypeMode = 0;
 
+    private Settings settings;
+    private EventAppearanceSO eventAppearance;
+    private CreateEventTypeLabels labels;
+    private EventsContainer eventsContainer;
+
     private void Awake()
     {
         mat = eventRenderer.Select(it => it.material).ToList();
+    }
+
+    [Inject]
+    private void Construct(Settings settings, EventsContainer eventsContainer, EventAppearanceSO eventAppearance, CreateEventTypeLabels labels)
+    {
+        this.settings = settings;
+        this.eventAppearance = eventAppearance;
+        this.eventsContainer = eventsContainer;
+        this.labels = labels;
     }
 
     public static BeatmapEventContainer SpawnEvent(EventsContainer eventsContainer, MapEvent data, ref GameObject prefab, ref EventAppearanceSO eventAppearanceSO, ref CreateEventTypeLabels labels)
@@ -77,7 +89,7 @@ public class BeatmapEventContainer : BeatmapObjectContainer {
         }
 
         transform.localEulerAngles = Vector3.zero;
-        if (eventData._lightGradient != null && Settings.Instance.VisualizeChromaGradients)
+        if (eventData._lightGradient != null && settings.VisualizeChromaGradients)
         {
             eventGradientController.UpdateDuration(eventData._lightGradient.Duration);
         }
@@ -168,4 +180,6 @@ public class BeatmapEventContainer : BeatmapObjectContainer {
     {
         eventAppearance.SetEventAppearance(this);
     }
+
+    public class Pool : BeatmapObjectCollectionPool<MapEvent, BeatmapEventContainer> { }
 }

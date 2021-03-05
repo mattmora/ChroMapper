@@ -38,6 +38,9 @@ public class EventAppearanceSO : ScriptableObject
         this.settings = settings;
     }
 
+    // TODO: Optimize, most expensive calls:
+    // - e.UpdateOffset
+    // - e.UpdateGradientRendering (idek if we can do anything about this since its generating a texture)
     public void SetEventAppearance(BeatmapEventContainer e, bool final = true, bool boost = false) {
         Color color = Color.white;
         e.UpdateOffset(Vector3.zero);
