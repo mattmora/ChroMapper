@@ -4,6 +4,7 @@ using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering.UI;
 using UnityEngine.UI;
 
 public class EventPlacement : PlacementController<MapEvent, BeatmapEventContainer, EventsContainer>, CMInput.IEventPlacementActions
@@ -22,6 +23,7 @@ public class EventPlacement : PlacementController<MapEvent, BeatmapEventContaine
     public bool PlacePrecisionRotation = false;
     public int PrecisionRotationValue = 0;
 
+    private bool earlyRotationPlaceNow = false;
 
     public void SetGridSize(int gridSize = 16)
     {
@@ -65,43 +67,26 @@ public class EventPlacement : PlacementController<MapEvent, BeatmapEventContaine
         if (objectContainerCollection.PropagationEditing == EventsContainer.PropMode.Off)
         {
             queuedData._type = labels.LaneIdToEventType(Mathf.FloorToInt(instantiatedContainer.transform.localPosition.x));
-            queuedData._customData?.Remove("_propID");
+            queuedData._customData?.Remove("_lightID");
         }
         else 
         {
             var propID = Mathf.FloorToInt(instantiatedContainer.transform.localPosition.x - 1);
             queuedData._type = objectContainerCollection.EventTypeToPropagate;
-            
-            if (objectContainerCollection.PropagationEditing == EventsContainer.PropMode.Prop)
-            {
-                queuedData._customData?.Remove("_lightID");
-            }
-            else
-            {
-                queuedData._customData?.Remove("_propID");
-            }
 
-            var key = EventsContainer.GetKeyForProp(objectContainerCollection.PropagationEditing);
             if (propID >= 0)
             {
-                // If prop id, use correct mappings
-                propID = objectContainerCollection.PropagationEditing == EventsContainer.PropMode.Prop ?
-                    labels.EditorToGamePropID(queuedData._type, propID) : labels.EditorToGameLightID(queuedData._type, propID);
-
-                if (queuedData._customData == null || queuedData._customData?.Children.Count() == 0)
-                {
-                    queuedData._customData = new JSONObject();
-                }
-
-                queuedData._customData?.Add(key, propID);
+                var lightIdToApply = objectContainerCollection.PropagationEditing == EventsContainer.PropMode.Prop ?
+                    labels.PropIdToLightIdsJ(objectContainerCollection.EventTypeToPropagate, propID) :
+                    (JSONNode) labels.EditorToLightID(objectContainerCollection.EventTypeToPropagate, propID);
+                queuedData.GetOrCreateCustomData().Add("_lightID", lightIdToApply);
             }
-            else queuedData._customData?.Remove(key);
+            else queuedData.GetOrCreateCustomData().Remove("_lightID");
         }
 
         if (settings.PlaceChromaColor && !queuedData.IsUtilityEvent && queuedData._value != MapEvent.LIGHT_VALUE_OFF)
         {
-            if (queuedData._customData == null) queuedData._customData = new JSONObject();
-            queuedData._customData["_color"] = colorPicker.CurrentColor;
+            queuedData.GetOrCreateCustomData()["_color"] = colorPicker.CurrentColor;
         }
         else
         {
@@ -214,12 +199,43 @@ public class EventPlacement : PlacementController<MapEvent, BeatmapEventContaine
             {
                 dragged._customData["_propID"] = queued._customData["_propID"];
             }
-            
+
             if (queued._customData.HasKey("_lightID"))
             {
                 dragged._customData["_lightID"] = queued._customData["_lightID"];
             }
         }
+    }
+
+    internal void PlaceRotationNow(bool right, bool early)
+    {
+        if (!gridRotation?.IsActive ?? false)
+            return;
+        int rotationType = early ? MapEvent.EVENT_TYPE_EARLY_ROTATION : MapEvent.EVENT_TYPE_LATE_ROTATION;
+        float epsilon = 1f / Mathf.Pow(10, Settings.Instance.TimeValueDecimalPrecision);
+        MapEvent mapEvent = objectContainerCollection.AllRotationEvents.Find(x => x._time - epsilon < atsc.CurrentBeat && x._time + epsilon > atsc.CurrentBeat && x._type == rotationType);
+
+        //todo add support for custom rotation angles
+
+        int startingValue = right ? 4 : 3;
+        if (mapEvent != null) startingValue = mapEvent._value;
+
+        if (mapEvent != null && ((startingValue == 4 && !right || startingValue == 3 && right))) //This is for when we're going from a rotation event to no rotation event
+        {
+            startingValue = mapEvent._value;
+            objectContainerCollection.DeleteObject(mapEvent, false);
+            BeatmapActionContainer.AddAction(new BeatmapObjectDeletionAction(mapEvent, "Deleted by PlaceRotationNow."));
+        }
+        else if ((startingValue < 7 && right) || (startingValue > 0 && !right))
+        {
+            if (mapEvent != null) startingValue += right ? 1 : -1;
+            MapEvent objectData = new MapEvent(atsc.CurrentBeat, rotationType, startingValue);
+
+            objectContainerCollection.SpawnObject(objectData, out List<BeatmapObject> conflicting);
+            BeatmapActionContainer.AddAction(GenerateAction(objectData, conflicting));
+        }
+        queuedData = BeatmapObject.GenerateCopy(queuedData);
+        tracksManager.RefreshTracks();
     }
 
     public override void ClickAndDragFinished()
@@ -250,5 +266,20 @@ public class EventPlacement : PlacementController<MapEvent, BeatmapEventContaine
     public void OnNegativeRotationModifier(InputAction.CallbackContext context)
     {
         negativeRotations = context.performed;
+    }
+
+    public void OnRotateInPlaceLeft(InputAction.CallbackContext context)
+    {
+        if (context.performed) PlaceRotationNow(false, earlyRotationPlaceNow);
+    }
+
+    public void OnRotateInPlaceRight(InputAction.CallbackContext context)
+    {
+        if (context.performed) PlaceRotationNow(true, earlyRotationPlaceNow);
+    }
+
+    public void OnRotateInPlaceModifier(InputAction.CallbackContext context)
+    {
+        earlyRotationPlaceNow = context.performed;
     }
 }

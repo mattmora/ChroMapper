@@ -209,7 +209,10 @@ public class SpectrogramChunk : MonoBehaviour
             for (int i = 0; i < verts.Count; i++)
             {
                 Vector3 it = verts[i];
-                uv[i] = new Vector2(it.z, Math.Min(0.99f, it.x));
+                uv[i] = new Vector2(
+                    Mathf.Clamp(it.z, 0.001f, 0.999f),
+                    Mathf.Clamp(it.x, 0.001f, 0.999f)
+                );
             }
             mesh.uv = uv;
 

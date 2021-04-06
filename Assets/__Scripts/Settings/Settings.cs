@@ -86,9 +86,13 @@ public class Settings : IInitializable, IDisposable
     public int ReleaseChannel = 1;
     public string ReleaseServer = "https://cm.topc.at";
     public int DSPBufferSize = 10;
+    public bool QuickNoteEditing = false;
 
     public int NodeEditorTextSize = 10;
     public int NodeEditorSize = 10;
+
+    public int CursorPrecisionA = 1;
+    public int CursorPrecisionB = 1;
 
     public string LastLoadedMap = "";
     public string LastLoadedChar = "";

@@ -420,7 +420,7 @@ public class SelectionController : MonoBehaviour, CMInput.ISelectingActions, CMI
 
     public void ShiftSelection(int leftRight, int upDown)
     {
-        List<BeatmapObjectModifiedAction> allActions = SelectedObjects.AsParallel().Select(data => {
+        var allActions = SelectedObjects.AsParallel().Select(data => {
             BeatmapObject original = BeatmapObject.GenerateCopy(data);
             if (data is BeatmapNote note)
             {
@@ -475,38 +475,34 @@ public class SelectionController : MonoBehaviour, CMInput.ISelectingActions, CMI
             }
             else if (data is MapEvent e)
             {
-                if (eventPlacement.objectContainerCollection.PropagationEditing != EventsContainer.PropMode.Off)
+                var events = eventPlacement.objectContainerCollection;
+                if (eventPlacement.objectContainerCollection.PropagationEditing == EventsContainer.PropMode.Light)
                 {
-                    var key = EventsContainer.GetKeyForProp(eventPlacement.objectContainerCollection.PropagationEditing);
-                    int pos = -1 + leftRight;
-                    if (data._customData != null && data._customData[key].IsNumber)
-                    {
-                        var p = data?._customData[key]?.AsInt ?? -1;
-                        var x = eventPlacement.objectContainerCollection.PropagationEditing == EventsContainer.PropMode.Prop ?
-                            labels.GameToEditorPropID(e._type, p) : labels.GameToEditorLightID(e._type, p);
-                        pos = (x < 0 ? p : x) + leftRight;
-                    }
-                    if (pos < -1) pos = -1;
+                    var max = platform.LightingManagers[events.EventTypeToPropagate].ControllingLights.Select(x => x.lightID).Max();
 
-                    var events = eventPlacement.objectContainerCollection;
-                    var lightPropMax = (eventPlacement.objectContainerCollection.PropagationEditing == EventsContainer.PropMode.Prop ?
-                        platform.LightingManagers[events.EventTypeToPropagate].LightsGroupedByZ.Length :
-                        platform.LightingManagers[events.EventTypeToPropagate].ControllingLights.Count) - 1;
-
-                    if (pos == -1)
+                    var newId = Math.Min(e.LightId[0] + leftRight, max);
+                    if (newId < 1)
                     {
-                        data._customData?.Remove(key);
+                        data._customData?.Remove("_lightID");
                     }
                     else
                     {
-                        if (data._customData is null || data._customData.Count == 0 || !data._customData.Children.Any())
-                        {
-                            data._customData = new JSONObject();
-                        }
+                        data._customData["_lightID"] = newId;
+                    }
+                }
+                else if (eventPlacement.objectContainerCollection.PropagationEditing == EventsContainer.PropMode.Prop)
+                {
+                    var oldId = (e.IsLightIdEvent ? labels.LightIdsToPropId(events.EventTypeToPropagate, e.LightId) : null) ?? -1;
+                    var max = platform.LightingManagers[events.EventTypeToPropagate].LightsGroupedByZ.Length;
+                    var newId = Math.Min(oldId + leftRight, max - 1);
 
-                        data._customData[key] = pos > lightPropMax ? pos :
-                            eventPlacement.objectContainerCollection.PropagationEditing == EventsContainer.PropMode.Prop ?
-                                labels.EditorToGamePropID(e._type, pos) : labels.EditorToGameLightID(e._type, pos);
+                    if (newId < 0)
+                    {
+                        data._customData?.Remove("_lightID");
+                    }
+                    else
+                    {
+                        data.GetOrCreateCustomData()["_lightID"] = labels.PropIdToLightIdsJ(events.EventTypeToPropagate, newId);
                     }
                 }
                 else
@@ -525,16 +521,24 @@ public class SelectionController : MonoBehaviour, CMInput.ISelectingActions, CMI
 
                     e._type = labels.LaneIdToEventType(modified);
 
-                    if (e._customData != null && e._customData.HasKey("_propID"))
+                    if (e.IsLightIdEvent && !e._customData["_lightID"].IsArray)
                     {
-                        int editorID = labels.GameToEditorPropID(oldType, e._customData["_propID"]);
-                        e._customData["_propID"] = labels.EditorToGamePropID(e._type, editorID);
+                        var editorID = labels.LightIDToEditor(oldType, e.LightId[0]);
+                        e._customData["_lightID"] = labels.EditorToLightID(e._type, editorID);
                     }
-                    
-                    if (e._customData != null && e._customData.HasKey("_lightID"))
+                    else if (e.IsLightIdEvent)
                     {
-                        int editorID = labels.GameToEditorLightID(oldType, e._customData["_lightID"]);
-                        e._customData["_lightID"] = labels.EditorToGameLightID(e._type, editorID);
+                        e._customData["_lightID"] = labels.PropIdToLightIdsJ(e._type, e.PropId);
+                    }
+
+                    if (e._customData != null) {
+                        if (e._customData["_lightID"].Count == 0) {
+                            e._customData.Remove("_lightID");
+                        }
+
+                        if (e._customData.Count == 0) {
+                            e._customData = null;
+                        }
                     }
                 }
             }
@@ -542,21 +546,7 @@ public class SelectionController : MonoBehaviour, CMInput.ISelectingActions, CMI
             return new BeatmapObjectModifiedAction(data, data, original, "", true);
         }).ToList();
 
-        foreach (var obj in allActions)
-        {
-            var data = obj.GetEdited();
-            BeatmapObjectContainerCollection collection = BeatmapObjectContainerCollection.GetCollectionForType(data.beatmapType);
-            if (collection.LoadedContainers.TryGetValue(data, out BeatmapObjectContainer con))
-            {
-                con.UpdateGridPosition();
-            }
-        }
-
-        foreach (BeatmapObject unique in SelectedObjects.DistinctBy(x => x.beatmapType))
-        {
-            BeatmapObjectContainerCollection.GetCollectionForType(unique.beatmapType).RefreshPool(true);
-        }
-        BeatmapActionContainer.AddAction(new ActionCollectionAction(allActions, true, true, "Shifted a selection of objects."));
+        BeatmapActionContainer.AddAction(new ActionCollectionAction(allActions, true, true, "Shifted a selection of objects."), true);
         tracksManager.RefreshTracks();
     }
 

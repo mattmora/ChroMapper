@@ -93,13 +93,10 @@ public class CameraController : MonoBehaviour, CMInput.ICameraActions {
         if (_uiMode.selectedMode == UIModeType.PLAYING)
         {
             z = z < 0 ? 0.25f : 1.8f;
+            x = x < 0 ? -2f : x > 0 ? 2f : 0;
 
             transform.position = new Vector3(x,z,0);
-            
-            if (x > 0) x = -5f;
-            else if (x < 0) x = 5f;
-            
-            transform.rotation = Quaternion.Euler(new Vector3(0,0,x));
+            transform.rotation = Quaternion.Euler(new Vector3(0,-x,0));
             
             return;
         }
@@ -132,6 +129,7 @@ public class CameraController : MonoBehaviour, CMInput.ICameraActions {
             transform.rotation = Quaternion.Euler(eulerAngles);
 
         } else {
+            z = x = 0;
             SetLockState(false);
         }
 

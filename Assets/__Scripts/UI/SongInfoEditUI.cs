@@ -29,6 +29,13 @@ public class SongInfoEditUI : MenuBase
         }
     }
 
+    private static Dictionary<string, AudioType> ExtensionToAudio = new Dictionary<string, AudioType>()
+    {
+        {"ogg", AudioType.OGGVORBIS},
+        {"egg", AudioType.OGGVORBIS},
+        {"wav", AudioType.WAV}
+    };
+
     public static List<Environment> VanillaEnvironments = new List<Environment>()
     {
         new Environment("Default", "DefaultEnvironment"),
@@ -47,7 +54,8 @@ public class SongInfoEditUI : MenuBase
         new Environment("Timbaland", "TimbalandEnvironment"),
         new Environment("FitBeat", "FitBeatEnvironment"),
         new Environment("Linkin Park", "LinkinParkEnvironment"),
-        new Environment("BTS", "BTSEnvironment")
+        new Environment("BTS", "BTSEnvironment"),
+        new Environment("Kaleidoscope", "KaleidoscopeEnvironment")
     };
 
     private static List<Environment> VanillaDirectionalEnvironments = new List<Environment>()
@@ -287,9 +295,15 @@ public class SongInfoEditUI : MenuBase
         Debug.Log("Loading audio");
         if (File.Exists(fullPath))
         {
-            if (audioPath.text.ToLower().EndsWith("ogg") || audioPath.text.ToLower().EndsWith("egg"))
+
+            var extension = audioPath.text.Contains(".") ? Path.GetExtension(audioPath.text.ToLower()).Replace(".", "") : "";
+
+
+            if (!string.IsNullOrEmpty(extension) && ExtensionToAudio.ContainsKey(extension))
             {
-                UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip($"file:///{Uri.EscapeDataString(fullPath)}", AudioType.OGGVORBIS);
+                Debug.Log("Lets go");
+                var audioType = ExtensionToAudio[extension];
+                UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip($"file:///{Uri.EscapeDataString($"{fullPath}")}", audioType);
                 //Escaping should fix the issue where half the people can't open ChroMapper's editor (I believe this is caused by spaces in the directory, hence escaping)
                 yield return www.SendWebRequest();
                 Debug.Log("Song loaded!");
@@ -562,7 +576,15 @@ public class SongInfoEditUI : MenuBase
     /// </summary>
     public void UndoChanges()
     {
-        reloadSongDataCoroutine = StartCoroutine(SpinReloadSongDataButton());
+        StartCoroutine(SpinReloadSongDataButton());
+
+        var wrapper = contributorController.transform.parent.gameObject;
+        if (wrapper.activeSelf)
+        {
+            contributorController.UndoChanges();
+            return;
+        }
+
         LoadFromSong();
     }
 

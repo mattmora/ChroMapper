@@ -34,18 +34,23 @@ public class BeatmapNoteInputController : BeatmapInputController<BeatmapNoteCont
     };
 
     [SerializeField] private NoteAppearanceSO noteAppearanceSO;
+    public bool QuickModificationActive;
 
     //Do some shit later lmao
     public void OnInvertNoteColors(InputAction.CallbackContext context)
     {
-        if (customStandaloneInputModule.IsPointerOverGameObject<GraphicRaycaster>(-1, true)) return;
-        if (!context.performed) return;
+        if (customStandaloneInputModule.IsPointerOverGameObject<GraphicRaycaster>(-1, true) || !KeybindsController.IsMouseInWindow || !context.performed) return;
 
         RaycastFirstObject(out BeatmapNoteContainer note);
         if (note != null)
         {
             InvertNote(note);
         }
+    }
+
+    public void OnQuickDirectionModifier(InputAction.CallbackContext context)
+    {
+        QuickModificationActive = context.performed;
     }
 
     public void InvertNote(BeatmapNoteContainer note)

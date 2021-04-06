@@ -123,12 +123,12 @@ public class MetronomeHandler : MonoBehaviour
             if (lastBPMChange != null)
             {
                 float differenceInSongBPM = atsc.CurrentBeat - lastBPMChange._time;
-                float differenceInLastBPM = differenceInSongBPM * song.beatsPerMinute / lastBPMChange._BPM;
-                beatProgress = (float)(differenceInLastBPM - Math.Truncate(differenceInLastBPM));
+                float differenceInLastBPM = differenceInSongBPM * lastBPMChange._BPM / song.beatsPerMinute;
+                beatProgress = differenceInLastBPM % 1;
             }
             else
             {
-                beatProgress = (float)(atsc.CurrentBeat - Math.Truncate(atsc.CurrentBeat));
+                beatProgress = atsc.CurrentBeat % 1;
             }
         }
     }
