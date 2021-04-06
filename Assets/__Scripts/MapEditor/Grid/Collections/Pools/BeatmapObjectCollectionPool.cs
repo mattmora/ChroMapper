@@ -18,7 +18,10 @@ public class BeatmapObjectCollectionPool<TObject, TContainer> : IMemoryPool<TObj
     {
         this.factory = factory;
         Resize(settings.InitialSize);
+
+#if UNITY_EDITOR
         StaticMemoryPoolRegistry.Add(this);
+#endif
     }
 
     public IEnumerable<TContainer> ActiveItems => loadedContainers;
@@ -110,6 +113,8 @@ public class BeatmapObjectCollectionPool<TObject, TContainer> : IMemoryPool<TObj
 
     public void Dispose()
     {
+#if UNITY_EDITOR
         StaticMemoryPoolRegistry.Remove(this);
+#endif
     }
 }
