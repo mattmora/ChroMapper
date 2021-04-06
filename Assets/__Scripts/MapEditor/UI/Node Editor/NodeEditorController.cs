@@ -85,7 +85,7 @@ public class NodeEditorController : MonoBehaviour, CMInput.INodeEditorActions
             if (queuedUpdate)
                 ObjectWasSelected();
 
-            height = Mathf.FloorToInt(Settings.Instance.NodeEditorSize * 20.5f);
+            height = Mathf.FloorToInt(settings.NodeEditorSize * 20.5f);
             GetComponent<RectTransform>().sizeDelta = new Vector2(300, height);
             nodeEditorInputField.pointSize = settings.NodeEditorTextSize;
         }

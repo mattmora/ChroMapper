@@ -35,6 +35,8 @@ public class BeatmapObjectCollectionPool<TObject, TContainer> : IMemoryPool<TObj
 
     public void Clear() => Resize(0);
 
+    public TContainer Spawn(BeatmapObject item) => Spawn(item as TObject); 
+
     public TContainer Spawn(TObject item)
     {
         if (!pooledContainers.Any()) ExpandBy(1);
@@ -48,6 +50,8 @@ public class BeatmapObjectCollectionPool<TObject, TContainer> : IMemoryPool<TObj
         item.HasAttachedContainer = true;
         return container;
     }
+
+    public void Despawn(BeatmapObjectContainer item) => Despawn(item as TContainer);
 
     public void Despawn(TContainer item)
     {
@@ -82,6 +86,7 @@ public class BeatmapObjectCollectionPool<TObject, TContainer> : IMemoryPool<TObj
         for (int i = 0; i < numToAdd; i++)
         {
             var newItem = factory.Create();
+            newItem.Setup();
             pooledContainers.Enqueue(newItem);
         }
     }

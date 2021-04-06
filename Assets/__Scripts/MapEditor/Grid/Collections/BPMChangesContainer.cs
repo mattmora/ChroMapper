@@ -5,7 +5,7 @@ using System.Linq;
 using UnityEngine;
 using Zenject;
 
-public class BPMChangesContainer : BeatmapObjectContainerCollection
+public class BPMChangesContainer : BeatmapObjectContainerCollection<BeatmapBPMChange, BeatmapBPMChangeContainer, BeatmapBPMChangeContainer.Pool>
 {
 
     public float lastBPM;
@@ -183,11 +183,8 @@ public class BPMChangesContainer : BeatmapObjectContainerCollection
         return LoadedObjects.Where(x => x._time + 0.01f < beatTimeInSongBPM).LastOrDefault() as BeatmapBPMChange;
     }
 
-    public override BeatmapObjectContainer CreateContainer() => BeatmapBPMChangeContainer.SpawnBPMChange(null, ref bpmPrefab);
-
-    protected override void UpdateContainerData(BeatmapObjectContainer con, BeatmapObject obj)
+    protected override void UpdateContainerData(BeatmapBPMChangeContainer container, BeatmapBPMChange obj)
     {
-        BeatmapBPMChangeContainer container = con as BeatmapBPMChangeContainer;
         container.UpdateBPMText();
     }
 }

@@ -212,7 +212,7 @@ public class EventPlacement : PlacementController<MapEvent, BeatmapEventContaine
         if (!gridRotation?.IsActive ?? false)
             return;
         int rotationType = early ? MapEvent.EVENT_TYPE_EARLY_ROTATION : MapEvent.EVENT_TYPE_LATE_ROTATION;
-        float epsilon = 1f / Mathf.Pow(10, Settings.Instance.TimeValueDecimalPrecision);
+        float epsilon = 1f / Mathf.Pow(10, settings.TimeValueDecimalPrecision);
         MapEvent mapEvent = objectContainerCollection.AllRotationEvents.Find(x => x._time - epsilon < atsc.CurrentBeat && x._time + epsilon > atsc.CurrentBeat && x._type == rotationType);
 
         //todo add support for custom rotation angles

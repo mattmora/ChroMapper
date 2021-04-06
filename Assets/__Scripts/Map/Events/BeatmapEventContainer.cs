@@ -55,17 +55,6 @@ public class BeatmapEventContainer : BeatmapObjectContainer {
         this.labels = labels;
     }
 
-    public static BeatmapEventContainer SpawnEvent(EventsContainer eventsContainer, MapEvent data, ref GameObject prefab, ref EventAppearanceSO eventAppearanceSO, ref CreateEventTypeLabels labels)
-    {
-        BeatmapEventContainer container = Instantiate(prefab).GetComponent<BeatmapEventContainer>();
-        container.eventData = data;
-        container.eventsContainer = eventsContainer;
-        container.eventAppearance = eventAppearanceSO;
-        container.labels = labels;
-        container.transform.localEulerAngles = Vector3.zero;
-        return container;
-    }
-
     public override void UpdateGridPosition()
     {
         var position = eventData.GetPosition(labels, eventsContainer.PropagationEditing, eventsContainer.EventTypeToPropagate);

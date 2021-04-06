@@ -2,7 +2,7 @@
 using System.Linq;
 using UnityEngine;
 
-public class ObstaclesContainer : BeatmapObjectContainerCollection
+public class ObstaclesContainer : BeatmapObjectContainerCollection<BeatmapObstacle, BeatmapObstacleContainer, BeatmapObstacleContainer.Pool>
 {
     private HashSet<Renderer> obstacleRenderer = new HashSet<Renderer>();
     [SerializeField] private GameObject obstaclePrefab;
@@ -46,15 +46,13 @@ public class ObstaclesContainer : BeatmapObjectContainerCollection
         obstacleAppearanceSO.defaultObstacleColor = obstacle;
     }
 
-    public override BeatmapObjectContainer CreateContainer() => BeatmapObstacleContainer.SpawnObstacle(null, tracksManager, ref obstaclePrefab);
-
-    protected override void UpdateContainerData(BeatmapObjectContainer con, BeatmapObject obj)
+    protected override void UpdateContainerData(BeatmapObstacleContainer obstacle, BeatmapObstacle obj)
     {
-        BeatmapObstacleContainer obstacle = con as BeatmapObstacleContainer;
+        obstacle.obstacleData = obj;
         if (!obstacle.IsRotatedByNoodleExtensions)
         {
             Track track = tracksManager.GetTrackAtTime(obj._time);
-            track.AttachContainer(con);
+            track.AttachContainer(obstacle);
         }
         foreach (Material mat in obstacle.ModelMaterials)
         {

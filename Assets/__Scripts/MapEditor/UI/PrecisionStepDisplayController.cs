@@ -1,6 +1,7 @@
 ﻿using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Zenject;
 
 public class PrecisionStepDisplayController : DisableActionsField
 {
@@ -14,10 +15,18 @@ public class PrecisionStepDisplayController : DisableActionsField
 
     private bool firstActive;
 
+    private Settings settings;
+
+    [Inject]
+    public void Construct(Settings settings)
+    {
+        this.settings = settings;
+    }
+
     private void Start()
     {
-        display.text = Settings.Instance.CursorPrecisionA.ToString();
-        secondDisplay.text = Settings.Instance.CursorPrecisionB.ToString();
+        display.text = settings.CursorPrecisionA.ToString();
+        secondDisplay.text = settings.CursorPrecisionB.ToString();
 
         atsc.GridMeasureSnappingChanged += UpdateText;
         SelectSnap(true);
@@ -25,11 +34,14 @@ public class PrecisionStepDisplayController : DisableActionsField
 
     void UpdateText(int newSnapping)
     {
-        if (firstActive) {
-            Settings.Instance.CursorPrecisionA = newSnapping;
+        if (firstActive)
+        {
+            settings.CursorPrecisionA = newSnapping;
             display.text = newSnapping.ToString();
-        } else {
-            Settings.Instance.CursorPrecisionB = newSnapping;
+        }
+        else
+        {
+            settings.CursorPrecisionB = newSnapping;
             secondDisplay.text = newSnapping.ToString();
         }
     }

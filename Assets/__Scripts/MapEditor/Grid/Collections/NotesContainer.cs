@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class NotesContainer : BeatmapObjectContainerCollection {
+public class NotesContainer : BeatmapObjectContainerCollection<BeatmapNote, BeatmapNoteContainer, BeatmapNoteContainer.Pool>
+{
 
     [SerializeField] private GameObject notePrefab;
     [SerializeField] private GameObject bombPrefab;
@@ -12,6 +13,7 @@ public class NotesContainer : BeatmapObjectContainerCollection {
 
     private HashSet<Material> allNoteRenderers = new HashSet<Material>();
 
+    // TODO: Replace with instance boolean because Zenject
     public static bool ShowArcVisualizer { get; private set; } = false;
 
     public override BeatmapObject.Type ContainerType => BeatmapObject.Type.NOTE;
@@ -96,23 +98,15 @@ public class NotesContainer : BeatmapObjectContainerCollection {
             note.SetArcVisible(ShowArcVisualizer);
     }
 
-    public override BeatmapObjectContainer CreateContainer()
+    protected override void UpdateContainerData(BeatmapNoteContainer note, BeatmapNote noteData)
     {
-        BeatmapObjectContainer con = BeatmapNoteContainer.SpawnBeatmapNote(null, ref notePrefab);
-        return con;
-    }
-
-    protected override void UpdateContainerData(BeatmapObjectContainer con, BeatmapObject obj)
-    {
-        BeatmapNoteContainer note = con as BeatmapNoteContainer;
-        BeatmapNote noteData = obj as BeatmapNote;
         note.SetBomb(noteData._type == BeatmapNote.NOTE_TYPE_BOMB);
         noteAppearanceSO.SetNoteAppearance(note);
-        note.Setup();
+        note.mapNoteData = noteData;
         note.transform.localEulerAngles = BeatmapNoteContainer.Directionalize(noteData);
-        Track track = tracksManager.GetTrackAtTime(obj._time);
-        track.AttachContainer(con);
-        foreach (Material mat in con.ModelMaterials)
+        Track track = tracksManager.GetTrackAtTime(noteData._time);
+        track.AttachContainer(note);
+        foreach (Material mat in note.ModelMaterials)
         {
             allNoteRenderers.Add(mat);
             mat.SetFloat("_Rotation", track.RotationValue.y);

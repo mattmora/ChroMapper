@@ -1,5 +1,6 @@
 ﻿using System;
 using UnityEngine;
+using Zenject;
 
 public class BeatmapObstacleContainer : BeatmapObjectContainer
 {
@@ -7,18 +8,22 @@ public class BeatmapObstacleContainer : BeatmapObjectContainer
 
     public override BeatmapObject objectData { get => obstacleData; set => obstacleData = (BeatmapObstacle)value; }
 
-    [SerializeField] private TracksManager manager;
+    public bool IsRotatedByNoodleExtensions => obstacleData._customData != null && (obstacleData._customData?.HasKey("_rotation") ?? false);
 
     public BeatmapObstacle obstacleData;
 
-    public bool IsRotatedByNoodleExtensions => obstacleData._customData != null && (obstacleData._customData?.HasKey("_rotation") ?? false);
+    private TracksManager manager;
+    private Settings settings;
+    private BeatSaberSong song;
+    private BeatSaberSong.DifficultyBeatmap difficultyData;
 
-    public static BeatmapObstacleContainer SpawnObstacle(BeatmapObstacle data, TracksManager manager, ref GameObject prefab)
+    [Inject]
+    public void Construct(TracksManager manager, Settings settings, BeatSaberSong song, BeatSaberSong.DifficultyBeatmap difficultyData)
     {
-        BeatmapObstacleContainer container = Instantiate(prefab).GetComponent<BeatmapObstacleContainer>();
-        container.obstacleData = data;
-        container.manager = manager;
-        return container;
+        this.manager = manager;
+        this.settings = settings;
+        this.song = song;
+        this.difficultyData = difficultyData;
     }
 
     public override void UpdateGridPosition()
@@ -27,12 +32,12 @@ public class BeatmapObstacleContainer : BeatmapObjectContainer
         Vector3 localRotation = Vector3.zero;
 
         //Take half jump duration into account if the setting is enabled.
-        if (obstacleData._duration < 0 && Settings.Instance.ShowMoreAccurateFastWalls)
+        if (obstacleData._duration < 0 && settings.ShowMoreAccurateFastWalls)
         {
-            float num = 60f / BeatSaberSongContainer.Instance.song.beatsPerMinute;
+            float num = 60f / song.beatsPerMinute;
             float halfJumpDuration = 4;
-            float songNoteJumpSpeed = BeatSaberSongContainer.Instance.difficultyData.noteJumpMovementSpeed;
-            float songStartBeatOffset = BeatSaberSongContainer.Instance.difficultyData.noteJumpStartBeatOffset;
+            float songNoteJumpSpeed = difficultyData.noteJumpMovementSpeed;
+            float songStartBeatOffset = difficultyData.noteJumpStartBeatOffset;
 
             while (songNoteJumpSpeed * num * halfJumpDuration > 18)
                 halfJumpDuration /= 2;
@@ -108,4 +113,6 @@ public class BeatmapObstacleContainer : BeatmapObjectContainer
 
         ModelMaterials.ForEach(m => m.SetColor(ColorTint, color ?? Color.red));
     }
+
+    public class Pool : BeatmapObjectCollectionPool<BeatmapObstacle, BeatmapObstacleContainer> { }
 }

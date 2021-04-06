@@ -6,7 +6,7 @@ using System.Collections.ObjectModel;
 using UnityEngine.InputSystem;
 using System;
 
-public class CustomEventsContainer : BeatmapObjectContainerCollection, CMInput.ICustomEventsContainerActions
+public class CustomEventsContainer : BeatmapObjectContainerCollection<BeatmapCustomEvent, BeatmapCustomEventContainer, BeatmapCustomEventContainer.Pool>, CMInput.ICustomEventsContainerActions
 {
     [SerializeField] private GameObject customEventPrefab;
     [SerializeField] private TextMeshProUGUI customEventLabelPrefab;
@@ -150,6 +150,4 @@ public class CustomEventsContainer : BeatmapObjectContainerCollection, CMInput.I
             obj.GetOrCreateCustomData()["_track"] = res;
         }
     }
-
-    public override BeatmapObjectContainer CreateContainer() => BeatmapCustomEventContainer.SpawnCustomEvent(null, this, ref customEventPrefab);
 }

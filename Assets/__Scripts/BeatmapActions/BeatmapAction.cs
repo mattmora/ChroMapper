@@ -10,28 +10,22 @@ using System;
 public abstract class BeatmapAction
 {
     public bool Active = true;
-    internal bool InCollection = false;
     public string Comment { get; private set; } = "No comment.";
     public IEnumerable<BeatmapObject> Data;
+    internal bool InCollection = false;
 
-    public BeatmapAction (IEnumerable<BeatmapObject> data, string comment = "No comment."){
+    protected SelectionController selection;
+    protected NodeEditorController nodeEditor;
+    protected TracksManager tracksManager;
+    protected List<BeatmapObjectContainerCollection> collections;
+
+    public BeatmapAction (IEnumerable<BeatmapObject> data, string comment = "No comment.")
+    {
         Data = data;
         Comment = comment;
     }
 
-    protected void RefreshPools(IEnumerable<BeatmapObject> data)
-    {
-        foreach (BeatmapObject unique in data.DistinctBy(x => x.beatmapType))
-        {
-            BeatmapObjectContainerCollection collection = BeatmapObjectContainerCollection.GetCollectionForType(unique.beatmapType);
-            collection.RefreshPool(true);
-
-            if (collection is BPMChangesContainer con)
-            {
-                con.RefreshGridShaders();
-            }
-        }
-    }
+    protected void RefreshPools(IEnumerable<BeatmapObject> data) => collections.ForEach(x => x.RefreshPool(true));
 
     /// <summary>
     /// Steps that should be taken to Undo an Action.

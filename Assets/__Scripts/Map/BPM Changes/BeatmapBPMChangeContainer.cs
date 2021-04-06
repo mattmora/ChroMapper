@@ -11,13 +11,6 @@ public class BeatmapBPMChangeContainer : BeatmapObjectContainer {
 
     [SerializeField] private TextMeshProUGUI bpmText;
 
-    public static BeatmapBPMChangeContainer SpawnBPMChange(BeatmapBPMChange data, ref GameObject prefab)
-    {
-        BeatmapBPMChangeContainer container = Instantiate(prefab).GetComponent<BeatmapBPMChangeContainer>();
-        container.bpmData = data;
-        return container;
-    }
-
     public void UpdateBPMText()
     {
         bpmText.text = bpmData._BPM.ToString(CultureInfo.InvariantCulture);
@@ -28,4 +21,6 @@ public class BeatmapBPMChangeContainer : BeatmapObjectContainer {
         transform.localPosition = new Vector3(0.5f, 0.5f, bpmData._time * EditorScaleController.EditorScale);
         bpmText.text = bpmData._BPM.ToString(CultureInfo.InvariantCulture);
     }
+
+    public class Pool : BeatmapObjectCollectionPool<BeatmapBPMChange, BeatmapBPMChangeContainer> { }
 }

@@ -3,15 +3,28 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Zenject;
 
 public class BeatmapActionContainer : MonoBehaviour, CMInput.IActionsActions
 {
     private List<BeatmapAction> beatmapActions = new List<BeatmapAction>();
     private static BeatmapActionContainer instance;
+
     [SerializeField] private GameObject moveableGridTransform;
-    [SerializeField] private SelectionController selection;
-    [SerializeField] private NodeEditorController nodeEditor;
-    [SerializeField] private TracksManager tracksManager;
+    
+    private SelectionController selection;
+    private NodeEditorController nodeEditor;
+    private TracksManager tracksManager;
+    private DiContainer container; // Auros please spare me
+
+    [Inject]
+    public void Construct(SelectionController selection, NodeEditorController nodeEditor, TracksManager tracksManager, DiContainer container)
+    {
+        this.selection = selection;
+        this.nodeEditor = nodeEditor;
+        this.tracksManager = tracksManager;
+        this.container = container;
+    }
 
     private void Start()
     {
@@ -23,20 +36,24 @@ public class BeatmapActionContainer : MonoBehaviour, CMInput.IActionsActions
     /// </summary>
     /// <param name="action">BeatmapAction to add.</param>
     /// <param name="perform">If true Redo will be triggered immediately. This means you don't need separate logic to perform the action the first time.</param>
+    // TODO: No need to be static with zenject
     public static void AddAction(BeatmapAction action, bool perform = false)
     {
         instance.beatmapActions.RemoveAll(x => !x.Active);
+        instance.container.QueueForInject(action); // God this is so disgusting
         instance.beatmapActions.Add(action);
         if (perform) instance.DoRedo(action);
         Debug.Log($"Action of type {action.GetType().Name} added. ({action.Comment})");
     }
 
+    // TODO: No need to be static with zenject
     public static void RemoveAllActionsOfType<T>() where T : BeatmapAction
     {
         instance.beatmapActions.RemoveAll(x => x is T);
     }
 
     //Idk what these do but I started getting warnings about them since updating to Visual Studio 2019 v16.6
+    // TODO: No need to be static with zenject
     public static BeatmapAction GetLastAction() => instance.beatmapActions.Any() ? instance.beatmapActions.LastOrDefault(x => x.Active) : null;
 
     public void Undo()

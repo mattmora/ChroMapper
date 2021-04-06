@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Zenject;
 
 public class BeatmapNoteContainer : BeatmapObjectContainer
 {
@@ -24,6 +25,14 @@ public class BeatmapNoteContainer : BeatmapObjectContainer
 
     private Color bombColor = new Color(0.1544118f, 0.1544118f, 0.1544118f);
 
+    private Settings settings;
+
+    [Inject]
+    public void Construct(Settings settings)
+    {
+        this.settings = settings;
+    }
+
     public override void Setup()
     {
         if (!ModelMaterials.Any())
@@ -33,9 +42,9 @@ public class BeatmapNoteContainer : BeatmapObjectContainer
 
         if (simpleBlock != null)
         {
-            simpleBlock.SetActive(Settings.Instance.SimpleBlocks);
-            complexBlock.SetActive(!Settings.Instance.SimpleBlocks);
-            if (Settings.Instance.SimpleBlocks)
+            simpleBlock.SetActive(settings.SimpleBlocks);
+            complexBlock.SetActive(!settings.SimpleBlocks);
+            if (settings.SimpleBlocks)
             {
                 dotRenderer.material.EnableKeyword("_EMISSION");
                 arrowRenderer.material.EnableKeyword("_EMISSION");
@@ -49,7 +58,7 @@ public class BeatmapNoteContainer : BeatmapObjectContainer
             foreach (Renderer renderer in noteRenderer)
             {
                 var material = renderer.materials.First();
-                material.SetFloat("_Lit", Settings.Instance.SimpleBlocks ? 0 : 1);
+                material.SetFloat("_Lit", settings.SimpleBlocks ? 0 : 1);
             }
         }
 
@@ -99,14 +108,6 @@ public class BeatmapNoteContainer : BeatmapObjectContainer
         if (swingArcRenderer != null) swingArcRenderer.enabled = ShowArcVisualizer;
     }
 
-    public static BeatmapNoteContainer SpawnBeatmapNote(BeatmapNote noteData, ref GameObject notePrefab)
-    {
-        BeatmapNoteContainer container = Instantiate(notePrefab).GetComponent<BeatmapNoteContainer>();
-        container.mapNoteData = noteData;
-        container.transform.localEulerAngles = Directionalize(noteData);
-        return container;
-    }
-
     public override void UpdateGridPosition()
     {
         transform.localPosition = (Vector3)mapNoteData.GetPosition() +
@@ -151,4 +152,6 @@ public class BeatmapNoteContainer : BeatmapObjectContainer
         base.AssignTrack(track);
         track.OnTimeChanged += CheckTranslucent;
     }
+
+    public class Pool : BeatmapObjectCollectionPool<BeatmapNote, BeatmapNoteContainer> { }
 }
