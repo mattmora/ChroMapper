@@ -9,7 +9,7 @@ A partial source of the AV implementation (or at least some version of it; I sus
 1. Open up the project in Unity.
 2. Press play then select the song to analyze.
 3. In the Song Edit Menu, press Save then look at the Unity Console.
-4. After several seconds, 1 to 5 results should be logged, each including a **BPM**, a **Fitness**, a **Beat Dur**, and an **Offset**. 
+4. After several seconds, up to 5 results should be logged, each including a **BPM**, a **Fitness**, a **Beat Dur**, and an **Offset**. 
 
 For example:
 `[BPM:186] [Fitness:36.45967] [Beat Dur:0.3225806] [Offset:0.001816253]`
@@ -31,7 +31,7 @@ Lastly, I've edited the `02_SongEditMenu` scene for quick and dirty testing. The
 ## The Algorithm
 
 For more detail, see the paper in the `original-paper` folder of https://github.com/nathanstep55/bpm-offset-detector.
-My explanation for BPM estimation is as follows:
+My rough explanation for BPM estimation:
 1. **Find the onsets.** There quite a bit to this and it's important it works well but both this implementation and the original mostly rely on aubio. See section 3.2 in the paper for the full onset extraction breakdown. 
 2. **Assign a strength to each onset based on the energy of nearby samples.** This is not mentioned in the paper, but is in the original code and seems to make a big difference.
 3. **Test how well the onsets align to a range of BPMs.** This is done with histograms of lengths corresponding the beat length of each BPM. The more clustered the onsets are within these histograms, the better aligned the BPM is. In other words, you modulo the time of each onset by the beat length of each BPM, and BPMs with more clustered results are better. Onset strength also factors in, and this is also where we need to poly fit to adjust for a bias towards higher BPMs (higher BPM = smaller intervals = the same number of onsets wrapped to a smaller range = naturally more clustering).
