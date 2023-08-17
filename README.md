@@ -24,7 +24,7 @@ The main BPM detection code is in `Assets/__Scripts/BPM`.
 - `SyncAnalyser.cs` is a minimal MonoBehaviour container for `SyncAnalysis`. 
 - The `Aubio` folder contains my manual port of code from aubio, a dependency of the original code that handles the actual DSP (see the **Issues** section below for more on why I ported it as opposed to other options). *Notably I did not port the original FFT implementation and instead used the FFT that already exists in Chromapper.*
 
-I added MathNet.Numerics.dll to the Plugins folder for its polynomial fit function which is needed to evaluate BPM candidates. It's a managed plugin which should work cross-platform although I haven't tested. It could likely be replaced with another solution if necessary.
+I added `MathNet.Numerics.dll` to the `Plugins` folder for its polynomial fit function which is needed to accurately assess BPM candidates. It's a managed plugin which should work cross-platform although I haven't tested. It could likely be replaced with another solution if necessary.
 
 Lastly, I've edited the `02_SongEditMenu` scene for quick and dirty testing. The only changes are an added `SyncAnalyser` object at the top level with the corresponding script and the addition of its Analyse function to the `OnClick()` list of the `Save and Exit Button` object (under `Canvas > SongInfoPanel > Save > Button Layout > Button layout`), so that when Save is clicked, the analysis runs on the current song.
 
